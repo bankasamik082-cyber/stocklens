@@ -33,8 +33,13 @@ export default async function AlertsPage() {
             Politician Alerts
           </h1>
           <p className="mt-3 text-base text-slate-500">
-            Get emailed whenever a tracked politician files a new stock trade on
-            a monitored ticker. Alerts run hourly via Vercel Cron.
+            Get emailed whenever a tracked House or Senate member files a new
+            stock trade on a monitored ticker. Alerts run daily via Vercel Cron.
+          </p>
+          <p className="mt-2 text-sm text-slate-600">
+            Covers House and Senate disclosures only (STOCK Act). The President
+            and Cabinet officials file under a separate system not included in
+            this data source.
           </p>
         </div>
 
@@ -64,8 +69,8 @@ export default async function AlertsPage() {
             {[
               {
                 step: "1",
-                title: "Hourly scan",
-                body: "Every hour a cron job fetches recent trades for 25 widely-held tickers from Financial Modeling Prep's congressional disclosure data.",
+                title: "Daily scan",
+                body: "Once a day a cron job fetches recent trades for 25 widely-held tickers from Financial Modeling Prep's congressional disclosure data.",
               },
               {
                 step: "2",
