@@ -200,6 +200,66 @@ export async function getCashFlow(ticker: string) {
   return data && data.length ? data[0] : null;
 }
 
+export interface FmpHistoricalPrice {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  change: number;
+  changePercent: number;
+}
+
+// Returns up to `days` of daily EOD prices, sorted oldest-first.
+// The stable endpoint returns an array (or occasionally wraps in { historical }).
+export async function getHistoricalPrices(
+  ticker: string,
+  days = 365
+): Promise<FmpHistoricalPrice[]> {
+  type Resp = FmpHistoricalPrice[] | { historical?: FmpHistoricalPrice[] };
+  const raw = await get<Resp>(`/historical-price-eod/full?symbol=${ticker}`);
+  if (!raw) return [];
+  const arr: FmpHistoricalPrice[] = Array.isArray(raw)
+    ? (raw as FmpHistoricalPrice[])
+    : ((raw as { historical?: FmpHistoricalPrice[] }).historical ?? []);
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  return arr
+    .filter((p) => p.date >= cutoffStr)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Finnhub company-news for a ±windowDays window around a specific date.
+export async function getNewsAroundDate(
+  ticker: string,
+  date: string,
+  windowDays = 5
+): Promise<FmpNews[]> {
+  const center = new Date(`${date}T12:00:00Z`);
+  const from = new Date(center);
+  from.setDate(from.getDate() - windowDays);
+  const to = new Date(center);
+  to.setDate(to.getDate() + windowDays);
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  try {
+    const url = `https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${fmt(from)}&to=${fmt(to)}&token=${finnhubKey()}`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return [];
+    const data = (await res.json()) as FinnhubNewsItem[];
+    return data.slice(0, 10).map((n) => ({
+      title: n.headline,
+      text: n.summary,
+      publishedDate: new Date(n.datetime * 1000).toISOString(),
+      site: n.source,
+      url: n.url,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 // Politician trading. We try Senate then House and merge whatever returns.
 export async function getPoliticianTrades(ticker: string) {
   const [senate, house] = await Promise.all([

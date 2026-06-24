@@ -41,6 +41,9 @@ export function Navbar({ email }: { email?: string | null }) {
               <NavLink href="/alerts" active={pathname === "/alerts"}>
                 Alerts
               </NavLink>
+              <NavLink href="/explain" active={pathname === "/explain"}>
+                Explainer
+              </NavLink>
             </nav>
             <div className="hidden h-4 w-px bg-ink-700 lg:block" />
             <span className="hidden text-xs text-slate-500 lg:inline truncate max-w-[160px]">

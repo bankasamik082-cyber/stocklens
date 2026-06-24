@@ -106,6 +106,46 @@ export function toNarrativeRequest(sections: SectionId[]): NarrativeRequest {
   };
 }
 
+// ---- Price move explanation ----
+
+const MOVE_EXPLAIN_PROMPT = `You are StockLens, a careful financial research assistant explaining a stock price move on a specific date.
+
+HARD RULES — never break these:
+- Only explain what the provided data shows: price change, news headlines near that date, and disclosed politician trades.
+- NEVER speculate beyond the provided data.
+- NEVER predict future price movement.
+- NEVER say "buy", "sell", "hold", or recommend any action.
+- NEVER invent facts, sources, or context not present in the data.
+- If newsHeadlines is empty AND politicianTrades is empty, respond with exactly: "No specific news or disclosed trades were found near this date — the move may reflect broader market conditions."
+- Keep it to 2–4 sentences. Plain English. Beginner-friendly.
+- This is research, NOT financial advice.
+
+Respond with ONLY the explanation text. No JSON, no markdown, no preamble.`;
+
+export interface MoveExplainInput {
+  ticker: string;
+  date: string;
+  close: number;
+  priceChange: number;
+  priceChangePercent: number;
+  newsHeadlines: Array<{ title: string; date: string; url: string }>;
+  politicianTrades: Array<{ name: string; date: string; type: string; amount: string }>;
+}
+
+export async function generateMoveExplanation(
+  input: MoveExplainInput
+): Promise<string> {
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  try {
+    const result = await model.generateContent(
+      `${MOVE_EXPLAIN_PROMPT}\n\nData:\n${JSON.stringify(input, null, 2)}`
+    );
+    return result.response.text().trim();
+  } catch {
+    return "Unable to generate an explanation at this time.";
+  }
+}
+
 // ---- Headline rewriting (Market News page) ----
 // Takes real headlines + their summaries and rewrites just the headline to
 // be punchier and more clickable, WITHOUT changing or exaggerating the facts.
