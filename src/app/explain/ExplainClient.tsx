@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   LineChart,
   Line,
@@ -95,6 +95,15 @@ export function ExplainClient() {
   const [loadingExplain, setLoadingExplain] = useState(false);
   const [explainError, setExplainError] = useState("");
 
+  // recharts' onClick fires before activePayload is synced; track the hovered
+  // point in a ref via onMouseMove so the click handler always has it.
+  const hoveredPoint = useRef<PricePoint | null>(null);
+
+  function handleMouseMove(chartData: any) {
+    hoveredPoint.current =
+      (chartData?.activePayload?.[0]?.payload as PricePoint) ?? null;
+  }
+
   async function handleFetchPrices(e: React.FormEvent) {
     e.preventDefault();
     const t = ticker.trim().toUpperCase();
@@ -117,10 +126,8 @@ export function ExplainClient() {
     }
   }
 
-  // recharts passes CategoricalChartState as the first arg; cast via unknown.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async function handleChartClick(chartData: any) {
-    const point = (chartData?.activePayload?.[0]?.payload) as PricePoint | undefined;
+  async function handleChartClick() {
+    const point = hoveredPoint.current;
     if (!point) return;
     if (point.date === selectedDate && result) return;
 
@@ -229,6 +236,7 @@ export function ExplainClient() {
               <LineChart
                 data={prices}
                 margin={{ top: 5, right: 16, left: 0, bottom: 5 }}
+                onMouseMove={handleMouseMove}
                 onClick={handleChartClick}
                 style={{ cursor: "crosshair" }}
               >
