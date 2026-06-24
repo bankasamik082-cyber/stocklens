@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   LineChart,
   Line,
@@ -95,15 +95,6 @@ export function ExplainClient() {
   const [loadingExplain, setLoadingExplain] = useState(false);
   const [explainError, setExplainError] = useState("");
 
-  // recharts' onClick fires before activePayload is synced; track the hovered
-  // point in a ref via onMouseMove so the click handler always has it.
-  const hoveredPoint = useRef<PricePoint | null>(null);
-
-  function handleMouseMove(chartData: any) {
-    hoveredPoint.current =
-      (chartData?.activePayload?.[0]?.payload as PricePoint) ?? null;
-  }
-
   async function handleFetchPrices(e: React.FormEvent) {
     e.preventDefault();
     const t = ticker.trim().toUpperCase();
@@ -126,12 +117,16 @@ export function ExplainClient() {
     }
   }
 
-  async function handleChartClick() {
-    const point = hoveredPoint.current;
+  // recharts v3 passes activeLabel (the XAxis dataKey value = date string) in
+  // the onClick chartData param — read it directly instead of the ref approach.
+  async function handleChartClick(chartData: any) {
+    const date = chartData?.activeLabel as string | undefined;
+    if (!date) return;
+    const point = prices.find((p) => p.date === date);
     if (!point) return;
     if (point.date === selectedDate && result) return;
 
-    setSelectedDate(point.date);
+    setSelectedDate(date);
     setResult(null);
     setExplainError("");
     setLoadingExplain(true);
@@ -140,7 +135,7 @@ export function ExplainClient() {
       const res = await fetch("/api/explain-move", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticker: currentTicker, date: point.date }),
+        body: JSON.stringify({ ticker: currentTicker, date }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to generate explanation.");
@@ -236,7 +231,6 @@ export function ExplainClient() {
               <LineChart
                 data={prices}
                 margin={{ top: 5, right: 16, left: 0, bottom: 5 }}
-                onMouseMove={handleMouseMove}
                 onClick={handleChartClick}
                 style={{ cursor: "crosshair" }}
               >
