@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/check-politician-trades",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

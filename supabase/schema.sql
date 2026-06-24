@@ -75,6 +75,37 @@ create policy "owner can insert saved_stocks"
 create policy "owner can delete saved_stocks"
   on public.saved_stocks for delete using (auth.uid() = user_id);
 
+-- ---------------------------------------------------------------------
+-- 4. alert_subscriptions  (users who want politician trade emails)
+-- ---------------------------------------------------------------------
+create table if not exists public.alert_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references auth.users (id) on delete cascade,
+  email text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.alert_subscriptions enable row level security;
+
+create policy "owner can read own subscription"
+  on public.alert_subscriptions for select using (auth.uid() = user_id);
+create policy "owner can insert own subscription"
+  on public.alert_subscriptions for insert with check (auth.uid() = user_id);
+create policy "owner can delete own subscription"
+  on public.alert_subscriptions for delete using (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------
+-- 5. seen_trades  (dedup log so cron never re-alerts on the same trade)
+-- No user-level RLS policies — only the service-role cron can read/write.
+-- ---------------------------------------------------------------------
+create table if not exists public.seen_trades (
+  id uuid primary key default gen_random_uuid(),
+  trade_key text not null unique,
+  created_at timestamptz not null default now()
+);
+
+alter table public.seen_trades enable row level security;
+
 -- =====================================================================
 -- Auto-create a public.users profile row whenever someone signs up.
 -- =====================================================================

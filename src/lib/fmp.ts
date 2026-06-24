@@ -171,6 +171,7 @@ export interface FmpPoliticianTrade {
   dateRecieved?: string;
   amount?: string;
   party?: string;
+  symbol?: string;
 }
 
 export async function getProfile(ticker: string) {
