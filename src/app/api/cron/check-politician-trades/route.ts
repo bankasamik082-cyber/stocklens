@@ -211,7 +211,7 @@ export async function GET(req: Request) {
   await Promise.allSettled(
     subscribers.map((sub) =>
       resend.emails.send({
-        from: "StockLens Alerts <alerts@stocklens.app>",
+        from: "StockLens Alerts <onboarding@resend.dev>",
         to: sub.email,
         subject,
         html: emailHtml,
