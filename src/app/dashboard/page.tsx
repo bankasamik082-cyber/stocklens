@@ -13,11 +13,20 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login");
 
-  const { data: recent } = await supabase
-    .from("analyses")
-    .select("id, ticker, selected_sections, created_at")
-    .order("created_at", { ascending: false })
-    .limit(8);
+  const [{ data: recent }, { data: savedStocks }] = await Promise.all([
+    supabase
+      .from("analyses")
+      .select("id, ticker, selected_sections, created_at")
+      .order("created_at", { ascending: false })
+      .limit(8),
+    supabase
+      .from("saved_stocks")
+      .select("ticker")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const initialWatchlist = (savedStocks ?? []).map((r) => r.ticker);
 
   const firstName = user.email?.split("@")[0];
 
@@ -42,7 +51,7 @@ export default async function DashboardPage() {
         <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
           {/* Search form */}
           <div>
-            <SearchForm />
+            <SearchForm initialWatchlist={initialWatchlist} />
           </div>
 
           {/* Recent reports */}
