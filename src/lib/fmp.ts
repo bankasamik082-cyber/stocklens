@@ -26,8 +26,13 @@ async function get<T>(path: string): Promise<T | null> {
   try {
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return null;
-    const data = (await res.json()) as T;
-    return data;
+    const data = await res.json();
+    // FMP returns HTTP 200 with {"Error Message": "..."} when rate-limited or
+    // when a plan limit is hit — treat this as a soft failure, same as !res.ok.
+    if (data && typeof data === "object" && !Array.isArray(data) && "Error Message" in data) {
+      return null;
+    }
+    return data as T;
   } catch {
     return null;
   }

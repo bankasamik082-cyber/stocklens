@@ -18,7 +18,10 @@ async function fmpSearch(endpoint: string, q: string, apiKey: string): Promise<F
       { cache: "no-store" }
     );
     if (!res.ok) return [];
-    return (await res.json()) as FmpSearchResult[];
+    const data = await res.json();
+    // FMP returns HTTP 200 with {"Error Message": "..."} when rate-limited
+    if (!Array.isArray(data)) return [];
+    return data as FmpSearchResult[];
   } catch {
     return [];
   }
