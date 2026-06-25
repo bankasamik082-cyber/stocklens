@@ -8,6 +8,22 @@ interface FmpSearchResult {
   exchange: string;
 }
 
+const US_EXCHANGES = new Set(["NASDAQ", "NYSE", "AMEX", "CBOE", "BATS", "ARCA", "NYSEARCA"]);
+const PREF_EXCHANGES = new Set(["NASDAQ", "NYSE", "AMEX"]);
+
+async function fmpSearch(endpoint: string, q: string, apiKey: string): Promise<FmpSearchResult[]> {
+  try {
+    const res = await fetch(
+      `https://financialmodelingprep.com/stable/${endpoint}?query=${encodeURIComponent(q)}&apikey=${apiKey}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    return (await res.json()) as FmpSearchResult[];
+  } catch {
+    return [];
+  }
+}
+
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim();
   if (!q || q.length < 1) {
@@ -19,24 +35,43 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "FMP_API_KEY not set" }, { status: 500 });
   }
 
-  try {
-    const res = await fetch(
-      `https://financialmodelingprep.com/stable/search-symbol?query=${encodeURIComponent(q)}&apikey=${apiKey}`,
-      { cache: "no-store" }
-    );
-    if (!res.ok) return NextResponse.json({ results: [] });
+  // Call both endpoints in parallel:
+  // - search-symbol: ticker-prefix match (AAPL → AAPL)
+  // - search-name:   company-name match (apple → AAPL, nvidia → NVDA)
+  const [bySymbol, byName] = await Promise.all([
+    fmpSearch("search-symbol", q, apiKey),
+    fmpSearch("search-name", q.toLowerCase(), apiKey),
+  ]);
 
-    const data = (await res.json()) as FmpSearchResult[];
-
-    // Keep USD-denominated securities on major US exchanges only
-    const US_EXCHANGES = new Set(["NASDAQ", "NYSE", "AMEX", "CBOE", "BATS", "ARCA", "NYSEARCA"]);
-    const results = data
-      .filter((r) => r.currency === "USD" && US_EXCHANGES.has(r.exchange))
-      .slice(0, 8)
-      .map((r) => ({ symbol: r.symbol, name: r.name, exchange: r.exchange }));
-
-    return NextResponse.json({ results });
-  } catch {
-    return NextResponse.json({ results: [] });
+  // Merge, deduplicate by symbol (symbol results take priority for ordering)
+  const seen = new Set<string>();
+  const merged: FmpSearchResult[] = [];
+  for (const r of [...bySymbol, ...byName]) {
+    if (!seen.has(r.symbol)) {
+      seen.add(r.symbol);
+      merged.push(r);
+    }
   }
+
+  // Filter to USD + US exchanges
+  const filtered = merged.filter(
+    (r) => r.currency === "USD" && US_EXCHANGES.has(r.exchange)
+  );
+
+  // Sort: preferred exchanges (NASDAQ/NYSE/AMEX) first, then exact symbol match boost
+  const qUpper = q.toUpperCase();
+  filtered.sort((a, b) => {
+    const aExact = a.symbol === qUpper ? 0 : 1;
+    const bExact = b.symbol === qUpper ? 0 : 1;
+    if (aExact !== bExact) return aExact - bExact;
+    const aPref = PREF_EXCHANGES.has(a.exchange) ? 0 : 1;
+    const bPref = PREF_EXCHANGES.has(b.exchange) ? 0 : 1;
+    return aPref - bPref;
+  });
+
+  const results = filtered
+    .slice(0, 8)
+    .map((r) => ({ symbol: r.symbol, name: r.name, exchange: r.exchange }));
+
+  return NextResponse.json({ results });
 }

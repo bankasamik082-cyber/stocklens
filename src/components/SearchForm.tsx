@@ -161,8 +161,9 @@ export function SearchForm({ initialWatchlist = [] }: SearchFormProps) {
   return (
     <>
       <form onSubmit={onSubmit} className="space-y-4">
-        {/* Ticker input + autocomplete */}
-        <div className="rounded-2xl border border-white/[0.07] bg-ink-800/50 p-5 shadow-card backdrop-blur-sm">
+        {/* Ticker input + autocomplete — relative z-10 so the dropdown stacking
+            context paints above the sections card that follows in the DOM */}
+        <div className="relative z-10 rounded-2xl border border-white/[0.07] bg-ink-800/50 p-5 shadow-card backdrop-blur-sm">
           <label
             htmlFor="ticker"
             className="mb-2 block text-xs font-semibold uppercase tracking-widest text-slate-500"
@@ -343,12 +344,17 @@ export function SearchForm({ initialWatchlist = [] }: SearchFormProps) {
         </p>
       </form>
 
-      {/* Watchlist */}
-      {watchlist.length > 0 && (
-        <div className="mt-6 rounded-2xl border border-white/[0.07] bg-ink-800/50 p-5 shadow-card backdrop-blur-sm">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
-            Watchlist
-          </h2>
+      {/* Watchlist — always visible so users can discover the feature */}
+      <div className="mt-6 rounded-2xl border border-white/[0.07] bg-ink-800/50 p-5 shadow-card backdrop-blur-sm">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">
+          Watchlist
+        </h2>
+        {watchlist.length === 0 ? (
+          <p className="text-xs text-slate-700">
+            No tickers saved yet. Type a ticker above and click{" "}
+            <span className="text-slate-500">☆</span> to save it here.
+          </p>
+        ) : (
           <div className="flex flex-wrap gap-2">
             {watchlist.map((t) => (
               <div
@@ -383,8 +389,8 @@ export function SearchForm({ initialWatchlist = [] }: SearchFormProps) {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 }
