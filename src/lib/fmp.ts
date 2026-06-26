@@ -205,37 +205,6 @@ export async function getCashFlow(ticker: string) {
   return data && data.length ? data[0] : null;
 }
 
-export interface FmpHistoricalPrice {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-  change: number;
-  changePercent: number;
-}
-
-// Returns up to `days` of daily EOD prices, sorted oldest-first.
-// The stable endpoint returns an array (or occasionally wraps in { historical }).
-export async function getHistoricalPrices(
-  ticker: string,
-  days = 365
-): Promise<FmpHistoricalPrice[]> {
-  type Resp = FmpHistoricalPrice[] | { historical?: FmpHistoricalPrice[] };
-  const raw = await get<Resp>(`/historical-price-eod/full?symbol=${ticker}`);
-  if (!raw) return [];
-  const arr: FmpHistoricalPrice[] = Array.isArray(raw)
-    ? (raw as FmpHistoricalPrice[])
-    : ((raw as { historical?: FmpHistoricalPrice[] }).historical ?? []);
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
-  const cutoffStr = cutoff.toISOString().slice(0, 10);
-  return arr
-    .filter((p) => p.date >= cutoffStr)
-    .sort((a, b) => a.date.localeCompare(b.date));
-}
-
 // Finnhub company-news for a ±windowDays window around a specific date.
 export async function getNewsAroundDate(
   ticker: string,

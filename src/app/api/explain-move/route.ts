@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
-  getHistoricalPrices,
   getNewsAroundDate,
   getPoliticianTrades,
   publicUrl,
   finnhubPublicUrl,
   type FmpPoliticianTrade,
 } from "@/lib/fmp";
+import { getHistoricalPrices, tdPublicUrl } from "@/lib/twelvedata";
 import { generateMoveExplanation } from "@/lib/openai";
 import type { Source } from "@/lib/types";
 
@@ -123,8 +123,8 @@ export async function POST(req: Request) {
 
   const sources: Source[] = [
     {
-      label: `FMP — ${ticker} price history`,
-      url: publicUrl(`/historical-price-eod/full?symbol=${ticker}`),
+      label: `Twelve Data — ${ticker} price history`,
+      url: tdPublicUrl(`/time_series?symbol=${ticker}&interval=1day`),
     },
     {
       label: `Finnhub — ${ticker} news ${fmt(newsFrom)} to ${fmt(newsTo)}`,
