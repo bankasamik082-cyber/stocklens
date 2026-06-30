@@ -109,18 +109,10 @@ export default async function LandingPage() {
               {FEATURES.map((f, i) => (
                 <div
                   key={f.title}
-                  className="group rounded-2xl border p-5 transition-all duration-200"
+                  className="hover-card rounded-2xl border p-5"
                   style={{
                     borderColor: `rgb(var(--t-border) / 0.7)`,
                     backgroundColor: `rgb(var(--t-surface))`,
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.borderColor = `rgb(var(--t-accent) / 0.3)`;
-                    (e.currentTarget as HTMLElement).style.backgroundColor = `rgb(var(--t-accent) / 0.04)`;
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.borderColor = `rgb(var(--t-border) / 0.7)`;
-                    (e.currentTarget as HTMLElement).style.backgroundColor = `rgb(var(--t-surface))`;
                   }}
                 >
                   <div className="flex items-start gap-4">

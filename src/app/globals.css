@@ -277,4 +277,50 @@ body {
   .divider {
     border-top: 1px solid rgb(var(--t-border) / 0.6);
   }
+
+  /* ── CSS-only hover helpers (safe to use in Server Components) ─────────── */
+
+  /* Card hover: accent border + very faint accent bg */
+  .hover-card {
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+  .hover-card:hover {
+    border-color: rgb(var(--t-accent) / 0.3);
+    background-color: rgb(var(--t-accent) / 0.04);
+  }
+
+  /* Row hover: accent border only */
+  .hover-row {
+    transition: border-color 0.15s ease;
+  }
+  .hover-row:hover {
+    border-color: rgb(var(--t-accent) / 0.3);
+  }
+
+  /* Text link hover: text turns accent */
+  .hover-accent-text {
+    transition: color 0.15s ease;
+  }
+  .hover-accent-text:hover {
+    color: rgb(var(--t-accent));
+  }
+
+  /* Chip hover: accent color + border */
+  .hover-chip {
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .hover-chip:hover {
+    color: rgb(var(--t-accent));
+    border-color: rgb(var(--t-accent) / 0.4);
+  }
+
+  /* Quick-link hover: text, border, and bg */
+  .hover-quick-link {
+    transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  }
+  .hover-quick-link:hover {
+    color: rgb(var(--t-text));
+    border-color: rgb(var(--t-accent) / 0.3);
+    background-color: rgb(var(--t-accent) / 0.05);
+  }
 }

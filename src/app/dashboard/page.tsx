@@ -67,13 +67,7 @@ export default async function DashboardPage() {
                 className="mt-6 flex flex-wrap gap-2 border-t pt-4"
                 style={{ borderColor: `rgb(var(--t-border) / 0.5)` }}
               >
-                {[
-                  "Finnhub",
-                  "Twelve Data",
-                  "SEC EDGAR",
-                  "Gemini AI",
-                  "FMP (Congress trades)",
-                ].map((s) => (
+                {["Finnhub", "Twelve Data", "SEC EDGAR", "Gemini AI", "FMP (Congress trades)"].map((s) => (
                   <span
                     key={s}
                     className="rounded-full border px-2.5 py-1 text-[10px] font-medium"
@@ -105,16 +99,10 @@ export default async function DashboardPage() {
                     recent.map((r) => (
                       <Link key={r.id} href={`/report/${r.id}`}>
                         <div
-                          className="group flex items-center justify-between rounded-xl border px-3 py-2.5 transition-all duration-150"
+                          className="hover-row flex items-center justify-between rounded-xl border px-3 py-2.5"
                           style={{
                             borderColor: `rgb(var(--t-border) / 0.6)`,
                             backgroundColor: `rgb(var(--t-card))`,
-                          }}
-                          onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLElement).style.borderColor = `rgb(var(--t-accent) / 0.3)`;
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLElement).style.borderColor = `rgb(var(--t-border) / 0.6)`;
                           }}
                         >
                           <div>
@@ -124,10 +112,7 @@ export default async function DashboardPage() {
                             >
                               {r.ticker}
                             </span>
-                            <p
-                              className="text-[10px] mt-0.5"
-                              style={{ color: `rgb(var(--t-dim))` }}
-                            >
+                            <p className="text-[10px] mt-0.5" style={{ color: `rgb(var(--t-dim))` }}>
                               {new Date(r.created_at).toLocaleDateString(undefined, {
                                 month: "short",
                                 day: "numeric",
@@ -146,12 +131,7 @@ export default async function DashboardPage() {
                             >
                               {(r.selected_sections as string[]).length}
                             </span>
-                            <span
-                              className="text-xs transition group-hover:translate-x-0.5"
-                              style={{ color: `rgb(var(--t-dim))` }}
-                            >
-                              →
-                            </span>
+                            <span className="text-xs" style={{ color: `rgb(var(--t-dim))` }}>→</span>
                           </div>
                         </div>
                       </Link>
@@ -161,12 +141,8 @@ export default async function DashboardPage() {
                       className="rounded-xl border border-dashed p-5 text-center"
                       style={{ borderColor: `rgb(var(--t-border) / 0.5)` }}
                     >
-                      <p className="text-sm" style={{ color: `rgb(var(--t-muted))` }}>
-                        No reports yet
-                      </p>
-                      <p className="text-xs mt-1" style={{ color: `rgb(var(--t-dim))` }}>
-                        Run your first analysis →
-                      </p>
+                      <p className="text-sm" style={{ color: `rgb(var(--t-muted))` }}>No reports yet</p>
+                      <p className="text-xs mt-1" style={{ color: `rgb(var(--t-dim))` }}>Run your first analysis →</p>
                     </div>
                   )}
                 </div>
@@ -187,18 +163,10 @@ export default async function DashboardPage() {
                       <Link
                         key={ticker}
                         href={`/dashboard?ticker=${ticker}`}
-                        className="rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold transition"
+                        className="hover-chip rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold"
                         style={{
                           borderColor: `rgb(var(--t-border))`,
                           color: `rgb(var(--t-muted))`,
-                        }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLElement).style.color = `rgb(var(--t-accent))`;
-                          (e.currentTarget as HTMLElement).style.borderColor = `rgb(var(--t-accent) / 0.4)`;
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLElement).style.color = `rgb(var(--t-muted))`;
-                          (e.currentTarget as HTMLElement).style.borderColor = `rgb(var(--t-border))`;
                         }}
                       >
                         {ticker}
@@ -219,28 +187,18 @@ export default async function DashboardPage() {
                 <div className="label mb-3">Quick Access</div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { href: "/earnings",  icon: "◑", label: "Earnings" },
-                    { href: "/news",      icon: "⬡", label: "News" },
-                    { href: "/alerts",    icon: "◎", label: "Alerts" },
-                    { href: "/explain",   icon: "⌁", label: "Explainer" },
+                    { href: "/earnings", icon: "◑", label: "Earnings" },
+                    { href: "/news",     icon: "⬡", label: "News" },
+                    { href: "/alerts",   icon: "◎", label: "Alerts" },
+                    { href: "/explain",  icon: "⌁", label: "Explainer" },
                   ].map((item) => (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition"
+                      className="hover-quick-link flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm"
                       style={{
                         borderColor: `rgb(var(--t-border) / 0.6)`,
                         color: `rgb(var(--t-muted))`,
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.color = `rgb(var(--t-text))`;
-                        (e.currentTarget as HTMLElement).style.borderColor = `rgb(var(--t-accent) / 0.3)`;
-                        (e.currentTarget as HTMLElement).style.backgroundColor = `rgb(var(--t-accent) / 0.05)`;
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.color = `rgb(var(--t-muted))`;
-                        (e.currentTarget as HTMLElement).style.borderColor = `rgb(var(--t-border) / 0.6)`;
-                        (e.currentTarget as HTMLElement).style.backgroundColor = ``;
                       }}
                     >
                       <span style={{ color: `rgb(var(--t-accent))` }}>{item.icon}</span>
@@ -253,10 +211,7 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <p
-            className="mt-8 text-center text-xs"
-            style={{ color: `rgb(var(--t-dim))` }}
-          >
+          <p className="mt-8 text-center text-xs" style={{ color: `rgb(var(--t-dim))` }}>
             StockLens is for research and education only. Not financial advice.
           </p>
         </main>

@@ -46,9 +46,8 @@ export default async function ReportPage({
           <div className="mb-8 flex items-center justify-between">
             <Link
               href="/dashboard"
-              className="flex items-center gap-1.5 text-sm transition"
+              className="hover-accent-text flex items-center gap-1.5 text-sm"
               style={{ color: `rgb(var(--t-muted))` }}
-              onMouseEnter={() => {}}
             >
               <span>←</span>
               <span>Dashboard</span>

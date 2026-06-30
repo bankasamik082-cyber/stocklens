@@ -205,14 +205,8 @@ function renderSection(id: SectionId, report: GeneratedReport) {
                 href={n.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-semibold transition"
+                className="hover-accent-text text-sm font-semibold"
                 style={{ color: `rgb(var(--t-text))` }}
-                onMouseEnter={(e) =>
-                  ((e.target as HTMLElement).style.color = `rgb(var(--t-accent))`)
-                }
-                onMouseLeave={(e) =>
-                  ((e.target as HTMLElement).style.color = `rgb(var(--t-text))`)
-                }
               >
                 {n.title}
               </a>
