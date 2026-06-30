@@ -5,6 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { Badge } from "@/components/Badge";
 import { ReportView } from "@/components/ReportView";
 import { PageTransition } from "@/components/PageTransition";
+import { ChatButton } from "@/components/ChatButton";
 import type {
   AnalysisRow,
   GeneratedReport,
@@ -89,6 +90,8 @@ export default async function ReportPage({
           </div>
 
           <ReportView report={report} sources={sources} selected={selected} />
+
+          <ChatButton ticker={analysis.ticker} />
 
           <div
             className="mt-8 rounded-xl border px-5 py-4 text-xs leading-relaxed"

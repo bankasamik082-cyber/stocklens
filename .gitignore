@@ -7,3 +7,7 @@ out
 *.log
 next-env.d.ts
 .vercel
+tests/.auth.json
+tests/.test-state.json
+playwright-report
+test-results
