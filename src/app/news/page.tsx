@@ -6,10 +6,7 @@ import { PageTransition } from "@/components/PageTransition";
 
 export default async function MarketNewsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   return (
@@ -17,14 +14,18 @@ export default async function MarketNewsPage() {
       <Navbar email={user.email} />
       <PageTransition>
         <main className="mx-auto max-w-3xl px-4 py-12">
-          <div className="mb-10 border-b border-white/[0.05] pb-8">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-400">
-              Market Intelligence
-            </p>
-            <h1 className="font-serif text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
+          <div
+            className="mb-10 border-b pb-8"
+            style={{ borderColor: `rgb(var(--t-border) / 0.4)` }}
+          >
+            <div className="label mb-3">Market Intelligence</div>
+            <h1
+              className="font-serif text-4xl font-bold leading-tight tracking-tight sm:text-5xl"
+              style={{ color: `rgb(var(--t-text))` }}
+            >
               Market News
             </h1>
-            <p className="mt-3 text-base text-slate-500">
+            <p className="mt-3 text-base" style={{ color: `rgb(var(--t-muted))` }}>
               Top general market headlines, refreshed each time you visit.
             </p>
           </div>

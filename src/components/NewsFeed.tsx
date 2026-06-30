@@ -49,24 +49,30 @@ export function NewsFeed() {
   if (!items) {
     return (
       <div className="space-y-8">
-        {/* Lead story skeleton */}
-        <div className="border-b border-white/[0.05] pb-10">
-          <div className="h-3 w-20 animate-pulse rounded-full bg-ink-700/60 mb-5" />
+        <div
+          className="border-b pb-10"
+          style={{ borderColor: `rgb(var(--t-border) / 0.4)` }}
+        >
+          <div className="skeleton h-3 w-20 mb-5" />
           <div className="space-y-3">
-            <div className="h-8 w-full animate-pulse rounded-lg bg-ink-700/60" />
-            <div className="h-8 w-4/5 animate-pulse rounded-lg bg-ink-700/60" />
+            <div className="skeleton h-8 w-full" />
+            <div className="skeleton h-8 w-4/5" />
           </div>
           <div className="mt-4 space-y-2">
-            <div className="h-4 w-full animate-pulse rounded bg-ink-700/40" />
-            <div className="h-4 w-3/4 animate-pulse rounded bg-ink-700/40" />
+            <div className="skeleton h-4 w-full" />
+            <div className="skeleton h-4 w-3/4" />
           </div>
-          <div className="mt-4 h-3 w-32 animate-pulse rounded bg-ink-700/30" />
+          <div className="mt-4 skeleton h-3 w-32" />
         </div>
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="border-b border-white/[0.05] pb-7">
-            <div className="h-6 w-3/4 animate-pulse rounded-lg bg-ink-700/60" />
-            <div className="mt-2 h-4 w-full animate-pulse rounded bg-ink-700/40" />
-            <div className="mt-3 h-3 w-28 animate-pulse rounded bg-ink-700/30" />
+          <div
+            key={i}
+            className="border-b pb-7"
+            style={{ borderColor: `rgb(var(--t-border) / 0.4)` }}
+          >
+            <div className="skeleton h-6 w-3/4" />
+            <div className="mt-2 skeleton h-4 w-full" />
+            <div className="mt-3 skeleton h-3 w-28" />
           </div>
         ))}
       </div>
@@ -75,7 +81,13 @@ export function NewsFeed() {
 
   if (items.length === 0) {
     return (
-      <p className="border-t border-white/[0.05] pt-6 text-sm text-slate-500">
+      <p
+        className="border-t pt-6 text-sm"
+        style={{
+          borderColor: `rgb(var(--t-border) / 0.4)`,
+          color: `rgb(var(--t-muted))`,
+        }}
+      >
         No news available right now.
       </p>
     );
@@ -90,48 +102,93 @@ export function NewsFeed() {
         href={lead.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="group block border-b border-white/[0.05] pb-10 mb-8"
+        className="group block border-b pb-10 mb-8"
+        style={{ borderColor: `rgb(var(--t-border) / 0.4)` }}
       >
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-400">
+        <span
+          className="text-[11px] font-semibold uppercase tracking-[0.18em]"
+          style={{ color: `rgb(var(--t-accent))` }}
+        >
           Top story
         </span>
-        <h2 className="mt-4 font-serif text-3xl font-bold leading-[1.1] tracking-tight text-white transition group-hover:text-brand-200 sm:text-4xl">
+        <h2
+          className="mt-4 font-serif text-3xl font-bold leading-[1.1] tracking-tight transition sm:text-4xl"
+          style={{ color: `rgb(var(--t-text))` }}
+        >
           {lead.displayTitle || lead.title}
         </h2>
         {lead.text && (
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-500">
+          <p
+            className="mt-4 max-w-2xl text-base leading-relaxed"
+            style={{ color: `rgb(var(--t-muted))` }}
+          >
             {lead.text.slice(0, 220)}…
           </p>
         )}
         <div className="mt-4 flex items-center gap-3">
-          <span className="rounded-full border border-white/[0.06] bg-ink-800/60 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <span
+            className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+            style={{
+              borderColor: `rgb(var(--t-border) / 0.6)`,
+              color: `rgb(var(--t-dim))`,
+            }}
+          >
             {lead.site}
           </span>
-          <span className="text-xs text-slate-700">{timeAgo(lead.publishedDate)}</span>
-          <span className="ml-auto text-xs font-medium text-brand-400 opacity-0 transition group-hover:opacity-100">
+          <span className="text-xs" style={{ color: `rgb(var(--t-dim))` }}>
+            {timeAgo(lead.publishedDate)}
+          </span>
+          <span
+            className="ml-auto text-xs font-medium opacity-0 transition group-hover:opacity-100"
+            style={{ color: `rgb(var(--t-accent))` }}
+          >
             Read →
           </span>
         </div>
       </a>
 
-      {/* Rest of stories */}
+      {/* Rest */}
       <ul className="space-y-0">
         {rest.map((n, i) => (
-          <li key={i} className="border-b border-white/[0.05] py-7 last:border-0">
+          <li
+            key={i}
+            className="border-b py-7 last:border-0"
+            style={{ borderColor: `rgb(var(--t-border) / 0.4)` }}
+          >
             <a href={n.url} target="_blank" rel="noopener noreferrer" className="group block">
-              <h3 className="font-serif text-xl font-bold leading-snug text-white transition group-hover:text-brand-200 sm:text-2xl">
+              <h3
+                className="font-serif text-xl font-bold leading-snug transition sm:text-2xl"
+                style={{ color: `rgb(var(--t-text))` }}
+                onMouseEnter={(e) =>
+                  ((e.currentTarget as HTMLElement).style.color = `rgb(var(--t-accent))`)
+                }
+                onMouseLeave={(e) =>
+                  ((e.currentTarget as HTMLElement).style.color = `rgb(var(--t-text))`)
+                }
+              >
                 {n.displayTitle || n.title}
               </h3>
               {n.text && (
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                <p
+                  className="mt-2 text-sm leading-relaxed"
+                  style={{ color: `rgb(var(--t-muted))` }}
+                >
                   {n.text.slice(0, 160)}…
                 </p>
               )}
               <div className="mt-3 flex items-center gap-3">
-                <span className="rounded-full border border-white/[0.05] bg-ink-800/40 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                <span
+                  className="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+                  style={{
+                    borderColor: `rgb(var(--t-border) / 0.5)`,
+                    color: `rgb(var(--t-dim))`,
+                  }}
+                >
                   {n.site}
                 </span>
-                <span className="text-xs text-slate-700">{timeAgo(n.publishedDate)}</span>
+                <span className="text-xs" style={{ color: `rgb(var(--t-dim))` }}>
+                  {timeAgo(n.publishedDate)}
+                </span>
               </div>
             </a>
           </li>

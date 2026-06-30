@@ -1,34 +1,51 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Navbar } from "@/components/Navbar";
-import { Badge } from "@/components/Badge";
 import { PageTransition } from "@/components/PageTransition";
-import { SECTION_LABELS, SECTION_ORDER } from "@/lib/types";
 
 export default async function LandingPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   return (
     <div className="min-h-screen">
       <Navbar email={user?.email} />
       <PageTransition>
         <main className="mx-auto max-w-5xl px-4">
-          {/* Hero */}
-          <section className="grid items-center gap-12 py-20 md:grid-cols-2 md:py-28">
-            <div className="animate-slide-up">
-              <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/25 bg-brand-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-brand-300 mb-6">
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-400 animate-glow-pulse" />
+
+          {/* ── Hero ──────────────────────────────────────────────────────── */}
+          <section className="relative py-24 md:py-32">
+            {/* Background glow */}
+            <div
+              className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-80 w-96 rounded-full blur-3xl opacity-20"
+              style={{ backgroundColor: `rgb(var(--t-accent))` }}
+            />
+
+            <div className="relative max-w-3xl">
+              <div
+                className="mb-6 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-widest"
+                style={{
+                  borderColor: `rgb(var(--t-accent) / 0.25)`,
+                  backgroundColor: `rgb(var(--t-accent) / 0.08)`,
+                  color: `rgb(var(--t-accent))`,
+                }}
+              >
+                <span
+                  className="h-1.5 w-1.5 rounded-full animate-glow-pulse"
+                  style={{ backgroundColor: `rgb(var(--t-accent))` }}
+                />
                 Research, not advice
               </div>
-              <h1 className="text-5xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl">
+
+              <h1
+                className="text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl"
+                style={{ color: `rgb(var(--t-text))` }}
+              >
                 Research any stock.{" "}
                 <span
                   className="bg-clip-text text-transparent"
                   style={{
-                    backgroundImage: "linear-gradient(90deg, #93adff, #818cf8, #c084fc, #93adff)",
+                    backgroundImage: `linear-gradient(90deg, rgb(var(--t-accent)), rgb(var(--t-accent) / 0.6), rgb(var(--t-accent)))`,
                     backgroundSize: "200% auto",
                     animation: "gradient-x 4s ease infinite",
                   }}
@@ -36,90 +53,98 @@ export default async function LandingPage() {
                   Every claim cited.
                 </span>
               </h1>
-              <p className="mt-6 max-w-md text-lg leading-relaxed text-slate-400">
-                Type a ticker, pick what you want in the report, and StockLens
-                pulls real financials, news and SEC filings — then writes it up in
-                plain English with sources under every section.
+
+              <p
+                className="mt-6 max-w-xl text-lg leading-relaxed"
+                style={{ color: `rgb(var(--t-muted))` }}
+              >
+                Institutional-grade AI research. Real financials from Finnhub and
+                SEC EDGAR, earnings intelligence, political trading signals, and
+                AI analysis — all in plain English, all cited.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
+
+              <div className="mt-10 flex flex-wrap gap-3">
                 <Link
                   href={user ? "/dashboard" : "/login"}
-                  className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 px-6 py-3 font-semibold text-white shadow-lg shadow-brand-500/25 transition hover:shadow-brand-500/40 hover:from-brand-400 hover:to-brand-500"
+                  className="group inline-flex items-center gap-2 btn-accent text-sm px-6 py-3"
                 >
                   {user ? "Open dashboard" : "Get started — it's free"}
                   <span className="transition group-hover:translate-x-0.5">→</span>
                 </Link>
-                <a
-                  href="#how"
-                  className="rounded-xl border border-ink-600 px-6 py-3 font-medium text-slate-300 transition hover:border-ink-500 hover:bg-ink-800/60 hover:text-white"
+                <Link
+                  href="/earnings"
+                  className="btn-ghost text-sm px-6 py-3"
                 >
-                  How it works
-                </a>
+                  Earnings Intelligence
+                </Link>
               </div>
-              <p className="mt-5 text-xs text-slate-600">
-                StockLens never says "buy" or "sell." It's a research tool, not financial advice.
-              </p>
-            </div>
 
-            {/* Demo card */}
-            <div className="relative">
-              <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-brand-500/10 to-transparent blur-2xl" />
-              <div className="relative rounded-2xl border border-white/[0.08] bg-ink-800/70 p-6 shadow-card backdrop-blur-sm">
-                <div className="flex items-center justify-between border-b border-white/[0.06] pb-4 mb-4">
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-1">Research Report</div>
-                    <span className="font-mono text-2xl font-bold tracking-wider text-white">NVDA</span>
-                  </div>
-                  <Badge tone="good">Score 8/10</Badge>
-                </div>
-                <p className="text-sm text-slate-400 leading-relaxed">
-                  Strong fundamentals with exceptional margin expansion. Revenue growth driven by AI infrastructure demand, though elevated valuation prices in continued dominance.
-                </p>
-                <div className="mt-4 grid grid-cols-3 gap-2">
-                  {[
-                    { label: "Revenue", val: "$60.9B", trend: "+122%" },
-                    { label: "Margin", val: "55.0%", trend: "+18pp" },
-                    { label: "Cash Flow", val: "$26.9B", trend: "↑" },
-                  ].map((s) => (
-                    <div key={s.label} className="rounded-xl border border-white/[0.06] bg-ink-900/60 px-3 py-2.5">
-                      <div className="text-[10px] uppercase tracking-wide text-slate-600">{s.label}</div>
-                      <div className="mt-1 font-mono text-sm font-semibold text-white">{s.val}</div>
-                      <div className="mt-0.5 text-[10px] text-emerald-400">{s.trend}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 border-t border-white/[0.06] pt-3 flex items-center gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Sources</span>
-                  <span className="text-[10px] text-brand-400">Finnhub · SEC EDGAR 10-K · Market News</span>
-                </div>
-              </div>
+              <p
+                className="mt-5 text-xs"
+                style={{ color: `rgb(var(--t-dim))` }}
+              >
+                StockLens never says "buy" or "sell." Research tool, not financial advice.
+              </p>
             </div>
           </section>
 
-          {/* Report sections */}
-          <section id="how" className="border-t border-white/[0.05] py-16">
-            <div className="mb-10">
-              <h2 className="text-3xl font-bold tracking-tight text-white">
-                Pick what goes in your report
+          {/* ── Feature grid ──────────────────────────────────────────────── */}
+          <section
+            className="border-t py-20"
+            style={{ borderColor: `rgb(var(--t-border) / 0.4)` }}
+          >
+            <div className="mb-12">
+              <h2
+                className="text-3xl font-bold tracking-tight"
+                style={{ color: `rgb(var(--t-text))` }}
+              >
+                Everything serious investors need
               </h2>
-              <p className="mt-2 text-slate-500">
-                Seven sections. Choose all of them or just the ones you care about.
+              <p className="mt-2 text-sm" style={{ color: `rgb(var(--t-muted))` }}>
+                One platform. Seven research modules. All cited.
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {SECTION_ORDER.map((id, i) => (
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {FEATURES.map((f, i) => (
                 <div
-                  key={id}
-                  className="group rounded-2xl border border-white/[0.06] bg-ink-800/40 p-5 transition hover:border-brand-500/25 hover:bg-ink-800/60"
+                  key={f.title}
+                  className="group rounded-2xl border p-5 transition-all duration-200"
+                  style={{
+                    borderColor: `rgb(var(--t-border) / 0.7)`,
+                    backgroundColor: `rgb(var(--t-surface))`,
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor = `rgb(var(--t-accent) / 0.3)`;
+                    (e.currentTarget as HTMLElement).style.backgroundColor = `rgb(var(--t-accent) / 0.04)`;
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor = `rgb(var(--t-border) / 0.7)`;
+                    (e.currentTarget as HTMLElement).style.backgroundColor = `rgb(var(--t-surface))`;
+                  }}
                 >
                   <div className="flex items-start gap-4">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/10 font-mono text-xs font-bold text-brand-400">
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base font-bold font-mono"
+                      style={{
+                        backgroundColor: `rgb(var(--t-accent) / 0.1)`,
+                        color: `rgb(var(--t-accent))`,
+                      }}
+                    >
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     <div>
-                      <p className="font-semibold text-white">{SECTION_LABELS[id]}</p>
-                      <p className="mt-1 text-sm text-slate-500 leading-relaxed">
-                        {DESCRIPTIONS[id]}
+                      <p
+                        className="font-semibold text-sm"
+                        style={{ color: `rgb(var(--t-text))` }}
+                      >
+                        {f.title}
+                      </p>
+                      <p
+                        className="mt-1 text-xs leading-relaxed"
+                        style={{ color: `rgb(var(--t-muted))` }}
+                      >
+                        {f.body}
                       </p>
                     </div>
                   </div>
@@ -128,38 +153,82 @@ export default async function LandingPage() {
             </div>
           </section>
 
-          {/* Steps */}
-          <section className="border-t border-white/[0.05] py-16">
-            <h2 className="mb-10 text-3xl font-bold tracking-tight text-white">Three steps</h2>
-            <div className="grid gap-8 sm:grid-cols-3">
+          {/* ── How it works ──────────────────────────────────────────────── */}
+          <section
+            className="border-t py-20"
+            style={{ borderColor: `rgb(var(--t-border) / 0.4)` }}
+          >
+            <h2
+              className="mb-12 text-3xl font-bold tracking-tight"
+              style={{ color: `rgb(var(--t-text))` }}
+            >
+              Three steps
+            </h2>
+            <div className="grid gap-10 sm:grid-cols-3">
               {STEPS.map((s, i) => (
                 <div key={i} className="relative">
                   {i < STEPS.length - 1 && (
-                    <div className="absolute top-4 left-full w-full h-px bg-gradient-to-r from-brand-500/30 to-transparent hidden sm:block" />
+                    <div
+                      className="absolute top-5 left-full w-full h-px hidden sm:block"
+                      style={{ background: `linear-gradient(to right, rgb(var(--t-accent) / 0.3), transparent)` }}
+                    />
                   )}
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-600/10 border border-brand-500/20 font-mono text-sm font-bold text-brand-300">
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border font-mono text-sm font-bold"
+                    style={{
+                      borderColor: `rgb(var(--t-accent) / 0.3)`,
+                      backgroundColor: `rgb(var(--t-accent) / 0.08)`,
+                      color: `rgb(var(--t-accent))`,
+                    }}
+                  >
                     {i + 1}
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold text-white">{s.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-500">{s.body}</p>
+                  <h3
+                    className="mt-4 text-base font-semibold"
+                    style={{ color: `rgb(var(--t-text))` }}
+                  >
+                    {s.title}
+                  </h3>
+                  <p
+                    className="mt-2 text-sm leading-relaxed"
+                    style={{ color: `rgb(var(--t-muted))` }}
+                  >
+                    {s.body}
+                  </p>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* Trust bar */}
-          <section className="border-t border-white/[0.05] py-12">
-            <div className="flex flex-wrap items-center justify-center gap-8 text-center text-xs text-slate-600">
-              {["Powered by SEC EDGAR", "Finnhub", "Twelve Data", "Gemini AI", "Supabase"].map((s) => (
-                <span key={s} className="flex items-center gap-2">
-                  <span className="h-1 w-1 rounded-full bg-ink-600" />
+          {/* ── Trust bar ─────────────────────────────────────────────────── */}
+          <section
+            className="border-t py-12"
+            style={{ borderColor: `rgb(var(--t-border) / 0.4)` }}
+          >
+            <div className="flex flex-wrap items-center justify-center gap-8 text-center text-xs">
+              {["SEC EDGAR", "Finnhub", "Twelve Data", "Gemini AI", "Supabase", "Vercel"].map((s) => (
+                <span
+                  key={s}
+                  className="flex items-center gap-2"
+                  style={{ color: `rgb(var(--t-dim))` }}
+                >
+                  <span
+                    className="h-1 w-1 rounded-full"
+                    style={{ backgroundColor: `rgb(var(--t-border))` }}
+                  />
                   {s}
                 </span>
               ))}
             </div>
           </section>
 
-          <footer className="border-t border-white/[0.05] py-8 text-center text-xs text-slate-700">
+          <footer
+            className="border-t py-8 text-center text-xs"
+            style={{
+              borderColor: `rgb(var(--t-border) / 0.4)`,
+              color: `rgb(var(--t-dim))`,
+            }}
+          >
             StockLens is for research and education only. Nothing here is financial advice.
           </footer>
         </main>
@@ -168,27 +237,18 @@ export default async function LandingPage() {
   );
 }
 
-const DESCRIPTIONS: Record<string, string> = {
-  companyOverview: "What it does, sector, industry and market cap.",
-  financialHealth: "Revenue, income, margin, debt, cash flow and a 1–10 score.",
-  recentNews: "A handful of recent headlines with links.",
-  politicianTrading: "Disclosed Senate/House trades, when available.",
-  bullCase: "Three plain reasons it could do well.",
-  bearCase: "Three plain risks to weigh.",
-  finalVerdict: "A short summary with a Low/Medium/High confidence level.",
-};
+const FEATURES = [
+  { title: "Company Overview", body: "What the company does, sector, industry, market cap — from Finnhub." },
+  { title: "Financial Health", body: "Revenue, net income, profit margin, debt, and operating cash flow — rated 1–10." },
+  { title: "Earnings Intelligence", body: "EPS beats/misses, surprise %, trend charts, AI summary." },
+  { title: "Recent News", body: "Curated headlines from Finnhub filtered to your ticker." },
+  { title: "Politician Trading", body: "Disclosed Senate and House trades via STOCK Act filings." },
+  { title: "Bull & Bear Case", body: "AI-generated upside and risk factors based on real data." },
+  { title: "Final Verdict", body: "Plain-English summary with Low/Medium/High confidence level." },
+];
 
 const STEPS = [
-  {
-    title: "Enter a ticker",
-    body: "AAPL, NVDA, TSLA — anything on the major exchanges.",
-  },
-  {
-    title: "Pick your sections",
-    body: "Toggle the parts you want. We only fetch what you ask for.",
-  },
-  {
-    title: "Read with sources",
-    body: "Every section links out to the data it was built from.",
-  },
+  { title: "Enter a ticker", body: "AAPL, NVDA, TSLA — anything on major exchanges. Use ⌘K to search by company name." },
+  { title: "Pick your sections", body: "Toggle the parts you want. We only fetch what you ask for, keeping it fast." },
+  { title: "Read with sources", body: "Every number, claim, and section links out to the exact data source." },
 ];

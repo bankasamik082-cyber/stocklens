@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Source_Serif_4 } from "next/font/google";
+import { ClientProviders } from "@/components/ClientProviders";
 import "./globals.css";
 
 const inter = Inter({
@@ -17,19 +18,21 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "StockLens — research stocks, backed by data",
+  title: "StockLens — AI Stock Research Platform",
   description:
-    "Enter a ticker, pick the sections you want, and get a clean research report where every section cites its sources. Not financial advice.",
+    "Professional-grade AI stock research. Real financials, SEC filings, earnings intelligence, and political trading activity — all cited.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${sourceSerif.variable}`}>
-      <body>{children}</body>
+    <html
+      lang="en"
+      className={`${inter.variable} ${sourceSerif.variable}`}
+      suppressHydrationWarning
+    >
+      <body>
+        <ClientProviders>{children}</ClientProviders>
+      </body>
     </html>
   );
 }
