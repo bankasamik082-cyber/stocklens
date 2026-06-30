@@ -1,34 +1,41 @@
-// Thin wrapper around the Financial Modeling Prep (FMP) REST API + Finnhub for news.
-// Docs: https://site.financialmodelingprep.com/developer/docs
+// Data layer: Finnhub (profile + financials + news) + FMP (politician trades only).
 //
-// Notes:
-// - Some endpoints (senate / house trading) require a paid FMP plan.
-//   Every fetch here fails soft: on error it returns null/empty so the
-//   report can still render with whatever data is available.
-// - We return the exact request URL (minus the API key) as a "source"
-//   so the report can cite where each number came from.
+// FMP free tier restricts income/balance/cashflow to a handful of mega-cap demo tickers
+// (returns HTTP 402 for everything else). Profile and financial statements now come from
+// Finnhub's free tier instead. FMP is kept only for senate-trades and house-trades.
+//
+// Finnhub financials-reported returns XBRL-labeled arrays — labels vary by company, so
+// we do prefix/substring matching rather than fixed field names.
 
 const BASE = "https://financialmodelingprep.com/stable";
+const FH_BASE = "https://finnhub.io/api/v1";
 
-function key() {
+function fmpKey() {
   const k = process.env.FMP_API_KEY;
   if (!k) throw new Error("FMP_API_KEY is not set");
   return k;
 }
 
-// Build a URL that is safe to show as a source (api key stripped).
+function finnhubKey() {
+  const k = process.env.FINNHUB_API_KEY;
+  if (!k) throw new Error("FINNHUB_API_KEY is not set");
+  return k;
+}
+
 export function publicUrl(path: string): string {
   return `${BASE}${path}`;
 }
 
-async function get<T>(path: string): Promise<T | null> {
-  const url = `${BASE}${path}${path.includes("?") ? "&" : "?"}apikey=${key()}`;
+export function finnhubPublicUrl(path: string): string {
+  return `${FH_BASE}${path}`;
+}
+
+async function fmpGet<T>(path: string): Promise<T | null> {
+  const url = `${BASE}${path}${path.includes("?") ? "&" : "?"}apikey=${fmpKey()}`;
   try {
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return null;
     const data = await res.json();
-    // FMP returns HTTP 200 with {"Error Message": "..."} when rate-limited or
-    // when a plan limit is hit — treat this as a soft failure, same as !res.ok.
     if (data && typeof data === "object" && !Array.isArray(data) && "Error Message" in data) {
       return null;
     }
@@ -38,7 +45,110 @@ async function get<T>(path: string): Promise<T | null> {
   }
 }
 
-// ---- Types for the bits of the FMP responses we use ----
+async function fhGet<T>(path: string): Promise<T | null> {
+  const sep = path.includes("?") ? "&" : "?";
+  const url = `${FH_BASE}${path}${sep}token=${finnhubKey()}`;
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+// ---- Finnhub XBRL helpers ----
+
+interface FhXbrlItem {
+  label: string;
+  value: number | null;
+}
+
+interface FhFinancialsReported {
+  data: Array<{
+    period: string | null;
+    year: number;
+    report: {
+      ic: FhXbrlItem[];
+      bs: FhXbrlItem[];
+      cf: FhXbrlItem[];
+    };
+  }>;
+}
+
+interface FhProfile2 {
+  ticker: string;
+  name: string;
+  country: string;
+  currency: string;
+  exchange: string;
+  ipo: string;
+  marketCapitalization: number; // in millions
+  shareOutstanding: number;
+  finnhubIndustry: string;
+  weburl: string;
+  logo: string;
+}
+
+function findRevenue(ic: FhXbrlItem[]): number | null {
+  const prefixes = [
+    "net revenue",
+    "total revenues",
+    "total net revenues",
+    "revenues",
+    "revenue",
+    "net sales",
+    "sales",
+  ];
+  for (const p of prefixes) {
+    const item = ic.find((x) => {
+      if (x.value === null) return false;
+      const l = x.label.toLowerCase().trim();
+      return (
+        l === p ||
+        (l.startsWith(p) && !/(other|cost|segment|deferred|service|products|contract)/.test(l))
+      );
+    });
+    if (item) return item.value as number;
+  }
+  return null;
+}
+
+function findNetIncome(ic: FhXbrlItem[]): number | null {
+  const item = ic.find(
+    (x) => x.value !== null && x.label.toLowerCase().trimStart().startsWith("net income")
+  );
+  return item ? (item.value as number) : null;
+}
+
+function findTotalDebt(bs: FhXbrlItem[]): number {
+  const shortMatch = bs.find(
+    (x) => x.value !== null && /^(short.?term debt|current debt)$/i.test(x.label.trim())
+  );
+  const longMatch = bs.find(
+    (x) => x.value !== null && /^long.?term debt$/i.test(x.label.trim())
+  );
+  return ((shortMatch?.value ?? 0) as number) + ((longMatch?.value ?? 0) as number);
+}
+
+function findOpCashFlow(cf: FhXbrlItem[]): number | null {
+  const keywords = [
+    "net cash provided by operating",
+    "net cash from operating",
+    "cash provided by operating",
+    "net cash generated from operating",
+  ];
+  for (const kw of keywords) {
+    const item = cf.find(
+      (x) => x.value !== null && x.label.toLowerCase().includes(kw)
+    );
+    if (item) return item.value as number;
+  }
+  return null;
+}
+
+// ---- Exported types (shape kept stable so callers don't need changes) ----
+
 export interface FmpProfile {
   symbol: string;
   companyName: string;
@@ -78,23 +188,84 @@ export interface FmpNews {
   url: string;
 }
 
-// ---- Finnhub (used for per-ticker company news + general market news) ----
+export interface FmpPoliticianTrade {
+  firstName?: string;
+  lastName?: string;
+  office?: string;
+  representative?: string;
+  type?: string;
+  transactionDate?: string;
+  dateRecieved?: string;
+  amount?: string;
+  party?: string;
+  symbol?: string;
+}
+
+export interface FinnhubFinancials {
+  income: FmpIncome | null;
+  balance: FmpBalance | null;
+  cashflow: FmpCashFlow | null;
+}
+
+// ---- Finnhub: company profile ----
+
+export async function getProfile(ticker: string): Promise<FmpProfile | null> {
+  const data = await fhGet<FhProfile2>(`/stock/profile2?symbol=${ticker}`);
+  if (!data || !data.name) return null;
+  return {
+    symbol: ticker,
+    companyName: data.name,
+    description: "",
+    sector: data.finnhubIndustry || "",
+    industry: data.finnhubIndustry || "",
+    marketCap: (data.marketCapitalization || 0) * 1_000_000, // Finnhub gives in millions
+    price: 0,
+    currency: data.currency || "USD",
+    website: data.weburl || "",
+  };
+}
+
+// ---- Finnhub: financial statements (one API call, three datasets) ----
+// Use getFinancials() in the analyze route to avoid 3 separate calls.
+
+export async function getFinancials(ticker: string): Promise<FinnhubFinancials> {
+  const raw = await fhGet<FhFinancialsReported>(
+    `/stock/financials-reported?symbol=${ticker}&freq=annual`
+  );
+
+  if (!raw?.data?.length) {
+    return { income: null, balance: null, cashflow: null };
+  }
+
+  const report = raw.data[0].report;
+  const { ic, bs, cf } = report;
+
+  const revenue = findRevenue(ic);
+  const netIncome = findNetIncome(ic);
+
+  const income: FmpIncome | null =
+    revenue !== null || netIncome !== null
+      ? { date: "", revenue: revenue ?? 0, netIncome: netIncome ?? 0, grossProfit: 0 }
+      : null;
+
+  const totalDebt = findTotalDebt(bs);
+  const balance: FmpBalance = { date: "", totalDebt, cashAndCashEquivalents: 0 };
+
+  const opCF = findOpCashFlow(cf);
+  const cashflow: FmpCashFlow | null =
+    opCF !== null ? { date: "", operatingCashFlow: opCF, freeCashFlow: 0 } : null;
+
+  return { income, balance, cashflow };
+}
+
+// ---- Finnhub: news ----
+
 interface FinnhubNewsItem {
   headline: string;
   summary: string;
-  datetime: number; // unix seconds
+  datetime: number;
   source: string;
   url: string;
-}
-
-function finnhubKey() {
-  const k = process.env.FINNHUB_API_KEY;
-  if (!k) throw new Error("FINNHUB_API_KEY is not set");
-  return k;
-}
-
-export function finnhubPublicUrl(path: string): string {
-  return `https://finnhub.io/api/v1${path}`;
 }
 
 export async function getNews(
@@ -105,52 +276,42 @@ export async function getNews(
   try {
     const to = new Date();
     const from = new Date();
-    from.setDate(from.getDate() - 14); // last 2 weeks of news
-
+    from.setDate(from.getDate() - 14);
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
-    const url = `https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${fmt(
-      from
-    )}&to=${fmt(to)}&token=${finnhubKey()}`;
-
+    const url = `${FH_BASE}/company-news?symbol=${ticker}&from=${fmt(from)}&to=${fmt(to)}&token=${finnhubKey()}`;
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return [];
     const data = (await res.json()) as FinnhubNewsItem[];
 
-    // Finnhub's free company-news feed sometimes includes loosely-related
-    // market stories. Keep only articles that actually mention the ticker
-    // or company name so the section stays relevant.
     const tickerLower = ticker.toLowerCase();
     const nameWords = companyName
       .toLowerCase()
       .replace(/[^a-z0-9 ]/g, "")
       .split(" ")
-      .filter((w) => w.length > 3); // skip short filler words like "inc", "the"
+      .filter((w) => w.length > 3);
 
-    const isRelevant = (n: FinnhubNewsItem) => {
-      const text = `${n.headline} ${n.summary}`.toLowerCase();
-      if (text.includes(tickerLower)) return true;
-      return nameWords.some((w) => text.includes(w));
-    };
-
-    const filtered = data.filter(isRelevant);
-
-    return filtered.slice(0, limit).map((n) => ({
-      title: n.headline,
-      text: n.summary,
-      publishedDate: new Date(n.datetime * 1000).toISOString(),
-      site: n.source,
-      url: n.url,
-    }));
+    return data
+      .filter((n) => {
+        const text = `${n.headline} ${n.summary}`.toLowerCase();
+        if (text.includes(tickerLower)) return true;
+        return nameWords.some((w) => text.includes(w));
+      })
+      .slice(0, limit)
+      .map((n) => ({
+        title: n.headline,
+        text: n.summary,
+        publishedDate: new Date(n.datetime * 1000).toISOString(),
+        site: n.source,
+        url: n.url,
+      }));
   } catch {
     return [];
   }
 }
 
-// General top market headlines, not tied to any specific ticker.
-// Used by the standalone Market News page.
 export async function getGeneralNews(limit = 20): Promise<FmpNews[]> {
   try {
-    const url = `https://finnhub.io/api/v1/news?category=general&token=${finnhubKey()}`;
+    const url = `${FH_BASE}/news?category=general&token=${finnhubKey()}`;
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return [];
     const data = (await res.json()) as FinnhubNewsItem[];
@@ -166,46 +327,6 @@ export async function getGeneralNews(limit = 20): Promise<FmpNews[]> {
   }
 }
 
-export interface FmpPoliticianTrade {
-  firstName?: string;
-  lastName?: string;
-  office?: string;
-  representative?: string;
-  type?: string;
-  transactionDate?: string;
-  dateRecieved?: string;
-  amount?: string;
-  party?: string;
-  symbol?: string;
-}
-
-export async function getProfile(ticker: string) {
-  const data = await get<FmpProfile[]>(`/profile?symbol=${ticker}`);
-  return data && data.length ? data[0] : null;
-}
-
-export async function getIncome(ticker: string) {
-  const data = await get<FmpIncome[]>(
-    `/income-statement?symbol=${ticker}&period=annual&limit=1`
-  );
-  return data && data.length ? data[0] : null;
-}
-
-export async function getBalance(ticker: string) {
-  const data = await get<FmpBalance[]>(
-    `/balance-sheet-statement?symbol=${ticker}&period=annual&limit=1`
-  );
-  return data && data.length ? data[0] : null;
-}
-
-export async function getCashFlow(ticker: string) {
-  const data = await get<FmpCashFlow[]>(
-    `/cash-flow-statement?symbol=${ticker}&period=annual&limit=1`
-  );
-  return data && data.length ? data[0] : null;
-}
-
-// Finnhub company-news for a ±windowDays window around a specific date.
 export async function getNewsAroundDate(
   ticker: string,
   date: string,
@@ -218,7 +339,7 @@ export async function getNewsAroundDate(
   to.setDate(to.getDate() + windowDays);
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
   try {
-    const url = `https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${fmt(from)}&to=${fmt(to)}&token=${finnhubKey()}`;
+    const url = `${FH_BASE}/company-news?symbol=${ticker}&from=${fmt(from)}&to=${fmt(to)}&token=${finnhubKey()}`;
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return [];
     const data = (await res.json()) as FinnhubNewsItem[];
@@ -234,11 +355,12 @@ export async function getNewsAroundDate(
   }
 }
 
-// Politician trading. We try Senate then House and merge whatever returns.
+// ---- FMP: politician trades (only FMP usage remaining) ----
+
 export async function getPoliticianTrades(ticker: string) {
   const [senate, house] = await Promise.all([
-    get<FmpPoliticianTrade[]>(`/senate-trades?symbol=${ticker}`),
-    get<FmpPoliticianTrade[]>(`/house-trades?symbol=${ticker}`),
+    fmpGet<FmpPoliticianTrade[]>(`/senate-trades?symbol=${ticker}`),
+    fmpGet<FmpPoliticianTrade[]>(`/house-trades?symbol=${ticker}`),
   ]);
   return {
     senate: senate ?? [],
@@ -246,7 +368,8 @@ export async function getPoliticianTrades(ticker: string) {
   };
 }
 
-// ---- formatting helpers ----
+// ---- Formatting helpers ----
+
 export function formatMoney(n: number | null | undefined): string {
   if (n === null || n === undefined || Number.isNaN(n)) return "Data not available";
   const abs = Math.abs(n);

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 
 export function Navbar({ email }: { email?: string | null }) {
@@ -32,18 +33,11 @@ export function Navbar({ email }: { email?: string | null }) {
         {email ? (
           <div className="flex items-center gap-5">
             <nav className="hidden items-center gap-1 sm:flex">
-              <NavLink href="/dashboard" active={pathname === "/dashboard"}>
-                Dashboard
-              </NavLink>
-              <NavLink href="/news" active={pathname === "/news"}>
-                Market News
-              </NavLink>
-              <NavLink href="/alerts" active={pathname === "/alerts"}>
-                Alerts
-              </NavLink>
-              <NavLink href="/explain" active={pathname === "/explain"}>
-                Explainer
-              </NavLink>
+              <NavLink href="/dashboard" active={pathname === "/dashboard"}>Dashboard</NavLink>
+              <NavLink href="/news" active={pathname === "/news"}>Market News</NavLink>
+              <NavLink href="/alerts" active={pathname === "/alerts"}>Alerts</NavLink>
+              <NavLink href="/explain" active={pathname === "/explain"}>Explainer</NavLink>
+              <NavLink href="/earnings" active={pathname === "/earnings"}>Earnings</NavLink>
             </nav>
             <div className="hidden h-4 w-px bg-ink-700 lg:block" />
             <span className="hidden text-xs text-slate-500 lg:inline truncate max-w-[160px]">
@@ -82,12 +76,18 @@ function NavLink({
     <Link
       href={href}
       className={`relative px-3 py-1.5 text-sm rounded-md transition ${
-        active
-          ? "text-white bg-ink-800"
-          : "text-slate-400 hover:text-white hover:bg-ink-800/60"
+        active ? "text-white" : "text-slate-400 hover:text-white hover:bg-ink-800/60"
       }`}
     >
       {children}
+      {active && (
+        <motion.span
+          layoutId="nav-underline"
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-0.5 rounded-full bg-brand-400"
+          style={{ boxShadow: "0 0 8px 1px rgba(129,140,248,0.7)" }}
+          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+        />
+      )}
     </Link>
   );
 }

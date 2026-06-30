@@ -28,7 +28,7 @@ function Sources({ sources }: { sources?: Source[] }) {
               href={s.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] bg-ink-900/60 px-3 py-1 text-xs text-brand-400 transition hover:border-brand-500/30 hover:text-brand-300"
+              className="inline-flex items-center gap-1 rounded-full border border-brand-500/20 bg-brand-500/5 px-3 py-1 text-xs text-brand-400 transition hover:border-brand-500/40 hover:bg-brand-500/10 hover:text-brand-300"
             >
               <span className="text-[10px]">↗</span>
               {s.label}
@@ -62,16 +62,20 @@ export function ReportView({
 
   return (
     <div className="space-y-4">
-      {shown.map((id) => (
+      {shown.map((id, idx) => (
         <section
           key={id}
           className="overflow-hidden rounded-2xl border border-white/[0.07] bg-ink-800/40 backdrop-blur-sm"
         >
-          {/* Section header */}
           <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-              {SECTION_LABELS[id]}
-            </h3>
+            <div className="flex items-center gap-3">
+              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-500/10 font-mono text-[10px] font-bold text-brand-400">
+                {String(idx + 1).padStart(2, "0")}
+              </span>
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+                {SECTION_LABELS[id]}
+              </h3>
+            </div>
             {sectionBadge(id, report)}
           </div>
           <div className="px-5 py-5">

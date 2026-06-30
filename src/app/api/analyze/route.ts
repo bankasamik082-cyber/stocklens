@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   getProfile,
-  getIncome,
-  getBalance,
-  getCashFlow,
+  getFinancials,
   getNews,
   getPoliticianTrades,
   formatMoney,
@@ -37,7 +35,6 @@ const VALID_SECTIONS: SectionId[] = [
   "finalVerdict",
 ];
 
-// Normalize FMP's two politician-trade shapes into our single shape.
 function normalizeTrade(t: FmpPoliticianTrade): PoliticianTrade {
   const name =
     t.representative ||
@@ -53,7 +50,6 @@ function normalizeTrade(t: FmpPoliticianTrade): PoliticianTrade {
 }
 
 export async function POST(req: Request) {
-  // 1. Auth — only logged-in users can run an analysis.
   const supabase = await createClient();
   const {
     data: { user },
@@ -62,7 +58,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 
-  // 2. Validate input.
   let body: { ticker?: string; sections?: string[] };
   try {
     body = await req.json();
@@ -88,14 +83,13 @@ export async function POST(req: Request) {
     );
   }
 
-  // Figure out which data we actually need to fetch.
   const need = {
     profile:
       sections.includes("companyOverview") ||
       sections.includes("bullCase") ||
       sections.includes("bearCase") ||
       sections.includes("finalVerdict") ||
-      sections.includes("recentNews"), // news filtering needs the company name
+      sections.includes("recentNews"),
     financials:
       sections.includes("financialHealth") ||
       sections.includes("bullCase") ||
@@ -106,47 +100,39 @@ export async function POST(req: Request) {
   };
 
   try {
-    // 3. Fetch profile, financials, politician trades and CIK in parallel.
-    const [profile, income, balance, cashflow, politician, cik] =
-      await Promise.all([
-        need.profile ? getProfile(ticker) : Promise.resolve(null),
-        need.financials ? getIncome(ticker) : Promise.resolve(null),
-        need.financials ? getBalance(ticker) : Promise.resolve(null),
-        need.financials ? getCashFlow(ticker) : Promise.resolve(null),
-        need.politician
-          ? getPoliticianTrades(ticker)
-          : Promise.resolve({ senate: [], house: [] }),
-        need.profile || need.financials
-          ? getCik(ticker)
-          : Promise.resolve(null),
-      ]);
+    // Fetch profile, financials (one Finnhub call), politician trades, and CIK in parallel.
+    const [profile, financials, politician, cik] = await Promise.all([
+      need.profile ? getProfile(ticker) : Promise.resolve(null),
+      need.financials
+        ? getFinancials(ticker)
+        : Promise.resolve({ income: null, balance: null, cashflow: null }),
+      need.politician
+        ? getPoliticianTrades(ticker)
+        : Promise.resolve({ senate: [], house: [] }),
+      need.profile || need.financials ? getCik(ticker) : Promise.resolve(null),
+    ]);
 
-    // News needs the company name (from profile) to filter for relevance,
-    // so it runs after the profile fetch resolves.
+    const { income, balance, cashflow } = financials;
+
     const news = need.news
       ? await getNews(ticker, profile?.companyName || ticker)
       : [];
 
-    // EDGAR filings (used as sources for overview + financials).
     const filings = cik ? await getRecentFilings(cik) : [];
 
-    // Bail early if we truly can't find the company at all.
     if (need.profile && !profile && !cik) {
       return NextResponse.json(
-        {
-          error: `Couldn't find data for "${ticker}". Check the ticker and try again.`,
-        },
+        { error: `Couldn't find data for "${ticker}". Check the ticker and try again.` },
         { status: 404 }
       );
     }
 
-    // 4. Build deterministic data + sources (no AI involved here).
     const report: GeneratedReport = {};
     const sourcesBySection: SourcesBySection = {};
 
-    const fmpProfileSource: Source = {
-      label: "Financial Modeling Prep — Company profile",
-      url: publicUrl(`/profile?symbol=${ticker}`),
+    const finnhubProfileSource: Source = {
+      label: "Finnhub — Company profile",
+      url: finnhubPublicUrl(`/stock/profile2?symbol=${ticker}`),
     };
     const edgarSources: Source[] = [];
     if (cik) {
@@ -162,7 +148,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // Compute the numeric pieces up front so we can pass them to the model.
     const revenueStr = formatMoney(income?.revenue);
     const netIncomeStr = formatMoney(income?.netIncome);
     const marginStr =
@@ -173,18 +158,16 @@ export async function POST(req: Request) {
     const cashFlowStr = formatMoney(cashflow?.operatingCashFlow);
     const marketCapStr = formatMoney(profile?.marketCap);
 
-    // ---- Company overview (deterministic fields) ----
     if (sections.includes("companyOverview")) {
       report.companyOverview = {
-        whatItDoes: "", // filled by the model below
+        whatItDoes: "",
         sector: profile?.sector || "Data not available",
         industry: profile?.industry || "Data not available",
         marketCap: marketCapStr,
       };
-      sourcesBySection.companyOverview = [fmpProfileSource, ...edgarSources];
+      sourcesBySection.companyOverview = [finnhubProfileSource, ...edgarSources];
     }
 
-    // ---- Financial health (deterministic numbers) ----
     if (sections.includes("financialHealth")) {
       report.financialHealth = {
         revenue: revenueStr,
@@ -192,28 +175,18 @@ export async function POST(req: Request) {
         profitMargin: marginStr,
         debt: debtStr,
         cashFlow: cashFlowStr,
-        score: 0, // filled by the model below
+        score: 0,
         scoreRationale: "",
       };
-      const finSources: Source[] = [
+      sourcesBySection.financialHealth = [
         {
-          label: "Financial Modeling Prep — Income statement",
-          url: publicUrl(`/income-statement?symbol=${ticker}`),
-        },
-        {
-          label: "Financial Modeling Prep — Balance sheet",
-          url: publicUrl(`/balance-sheet-statement?symbol=${ticker}`),
-        },
-        {
-          label: "Financial Modeling Prep — Cash flow statement",
-          url: publicUrl(`/cash-flow-statement?symbol=${ticker}`),
+          label: "Finnhub — Financial statements (XBRL)",
+          url: finnhubPublicUrl(`/stock/financials-reported?symbol=${ticker}&freq=annual`),
         },
         ...edgarSources,
       ];
-      sourcesBySection.financialHealth = finSources;
     }
 
-    // ---- Recent news (from Finnhub) ----
     if (sections.includes("recentNews")) {
       report.recentNews = {
         items: news.map((n) => ({
@@ -228,7 +201,6 @@ export async function POST(req: Request) {
           label: "Finnhub — Company news",
           url: finnhubPublicUrl(`/company-news?symbol=${ticker}`),
         },
-        // Each article is also its own source.
         ...news.slice(0, 6).map((n) => ({
           label: `${n.site || "Article"} — ${n.title}`.slice(0, 90),
           url: n.url,
@@ -236,7 +208,6 @@ export async function POST(req: Request) {
       ];
     }
 
-    // ---- Politician trading (straight from FMP, clearly flagged if empty) ----
     if (sections.includes("politicianTrading")) {
       const all = [...politician.senate, ...politician.house]
         .map(normalizeTrade)
@@ -251,17 +222,16 @@ export async function POST(req: Request) {
       };
       sourcesBySection.politicianTrading = [
         {
-          label: "Financial Modeling Prep — Senate trading disclosures",
+          label: "FMP — Senate trading disclosures",
           url: publicUrl(`/senate-trades?symbol=${ticker}`),
         },
         {
-          label: "Financial Modeling Prep — House trading disclosures",
+          label: "FMP — House trading disclosures",
           url: publicUrl(`/house-trades?symbol=${ticker}`),
         },
       ];
     }
 
-    // 5. Ask the model for the qualitative pieces only.
     const narrativeReq = toNarrativeRequest(sections);
     const wantsNarrative =
       narrativeReq.whatItDoes ||
@@ -285,8 +255,7 @@ export async function POST(req: Request) {
           debt: debtStr,
           cashFlow: cashFlowStr,
           newsHeadlines: news.slice(0, 5).map((n) => n.title),
-          hasPoliticianData:
-            report.politicianTrading?.hasData ?? false,
+          hasPoliticianData: report.politicianTrading?.hasData ?? false,
         },
         narrativeReq
       );
@@ -301,22 +270,21 @@ export async function POST(req: Request) {
       }
       if (sections.includes("bullCase")) {
         report.bullCase = { reasons: narrative.bullReasons ?? [] };
-        sourcesBySection.bullCase = [fmpProfileSource, ...edgarSources];
+        sourcesBySection.bullCase = [finnhubProfileSource, ...edgarSources];
       }
       if (sections.includes("bearCase")) {
         report.bearCase = { risks: narrative.bearRisks ?? [] };
-        sourcesBySection.bearCase = [fmpProfileSource, ...edgarSources];
+        sourcesBySection.bearCase = [finnhubProfileSource, ...edgarSources];
       }
       if (sections.includes("finalVerdict")) {
         report.finalVerdict = {
           summary: narrative.verdictSummary || "Data is limited.",
           confidence: narrative.verdictConfidence || "Low",
         };
-        sourcesBySection.finalVerdict = [fmpProfileSource, ...edgarSources];
+        sourcesBySection.finalVerdict = [finnhubProfileSource, ...edgarSources];
       }
     }
 
-    // 6. Persist the analysis.
     const { data: inserted, error: insertError } = await supabase
       .from("analyses")
       .insert({
@@ -336,11 +304,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // 7. Return the new analysis id so the client can navigate to it.
     return NextResponse.json({ id: inserted.id });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Something went wrong.";
+    const message = err instanceof Error ? err.message : "Something went wrong.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
