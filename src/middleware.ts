@@ -41,7 +41,8 @@ export async function middleware(request: NextRequest) {
     path.startsWith("/alerts") ||
     path.startsWith("/explain") ||
     path.startsWith("/earnings") ||
-    path.startsWith("/settings");
+    path.startsWith("/settings") ||
+    path.startsWith("/compare");
 
   if (!user && isProtected) {
     const url = request.nextUrl.clone();
