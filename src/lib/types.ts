@@ -46,6 +46,7 @@ export interface FinancialHealth {
   revenue: string;
   netIncome: string;
   profitMargin: string;
+  grossMargin?: string;
   debt: string;
   cashFlow: string;
   score: number; // 1..10

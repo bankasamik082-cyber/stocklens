@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getHistoricalPrices } from "@/lib/twelvedata";
+import { getHistoricalPrices, type HistoricalPrice } from "@/lib/twelvedata";
 import { getPoliticianTrades, type FmpPoliticianTrade } from "@/lib/fmp";
 
 const FH_BASE = "https://finnhub.io/api/v1";
@@ -152,16 +152,18 @@ export async function GET(req: Request) {
   yearAgo.setFullYear(yearAgo.getFullYear() - 1);
   const yearAgoStr = yearAgo.toISOString().slice(0, 10);
 
-  const [prices, earningsRaw, newsRaw, trades] = await Promise.all([
-    getHistoricalPrices(ticker, 365),
-    fetchEarnings(ticker),
-    fetchYearNews(ticker),
-    getPoliticianTrades(ticker),
+  const fetchResult = await Promise.all([
+    getHistoricalPrices(ticker, 365).catch((): HistoricalPrice[] => []),
+    fetchEarnings(ticker).catch((): FhEarnings[] => []),
+    fetchYearNews(ticker).catch(() => [] as Array<{ title: string; publishedDate: string; source: string; url: string }>),
+    getPoliticianTrades(ticker).catch(() => ({ senate: [] as FmpPoliticianTrade[], house: [] as FmpPoliticianTrade[] })),
   ]);
+
+  const [prices, earningsRaw, newsRaw, trades] = fetchResult;
 
   if (!prices.length) {
     return NextResponse.json(
-      { error: `No price history found for "${ticker}".` },
+      { error: `No price history found for "${ticker}". Markets may be closed or the ticker may be invalid.` },
       { status: 404 }
     );
   }

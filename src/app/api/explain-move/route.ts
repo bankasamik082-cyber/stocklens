@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import {
   getNewsAroundDate,
   getPoliticianTrades,
-  publicUrl,
   finnhubPublicUrl,
   type FmpPoliticianTrade,
 } from "@/lib/fmp";
@@ -139,12 +138,8 @@ export async function POST(req: Request) {
     ...(nearbyTrades.length > 0
       ? [
           {
-            label: "FMP — Senate trading disclosures",
-            url: publicUrl(`/senate-trades?symbol=${ticker}`),
-          },
-          {
-            label: "FMP — House trading disclosures",
-            url: publicUrl(`/house-trades?symbol=${ticker}`),
+            label: "U.S. Senate eFD — Periodic Transaction Reports",
+            url: `https://efts.senate.gov/LATEST/search.json?q=%22${ticker}%22`,
           },
         ]
       : []),

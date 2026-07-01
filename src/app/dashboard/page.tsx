@@ -67,7 +67,7 @@ export default async function DashboardPage() {
                 className="mt-6 flex flex-wrap gap-2 border-t pt-4"
                 style={{ borderColor: `rgb(var(--t-border) / 0.5)` }}
               >
-                {["Finnhub", "Twelve Data", "SEC EDGAR", "Gemini AI", "FMP (Congress trades)"].map((s) => (
+                {["Finnhub", "Twelve Data", "SEC EDGAR", "Gemini AI", "Senate eFD"].map((s) => (
                   <span
                     key={s}
                     className="rounded-full border px-2.5 py-1 text-[10px] font-medium"

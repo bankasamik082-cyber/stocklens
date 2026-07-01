@@ -7,7 +7,6 @@ import {
   getPoliticianTrades,
   formatMoney,
   formatPct,
-  publicUrl,
   finnhubPublicUrl,
   type FmpPoliticianTrade,
 } from "@/lib/fmp";
@@ -154,6 +153,10 @@ export async function POST(req: Request) {
       income && income.revenue
         ? formatPct(income.netIncome / income.revenue)
         : "Data not available";
+    const grossMarginStr =
+      income && income.revenue && income.grossProfit
+        ? formatPct(income.grossProfit / income.revenue)
+        : "Data not available";
     const debtStr = formatMoney(balance?.totalDebt);
     const cashFlowStr = formatMoney(cashflow?.operatingCashFlow);
     const marketCapStr = formatMoney(profile?.marketCap);
@@ -173,6 +176,7 @@ export async function POST(req: Request) {
         revenue: revenueStr,
         netIncome: netIncomeStr,
         profitMargin: marginStr,
+        grossMargin: grossMarginStr,
         debt: debtStr,
         cashFlow: cashFlowStr,
         score: 0,
@@ -218,16 +222,12 @@ export async function POST(req: Request) {
         note:
           all.length > 0
             ? ""
-            : "No disclosed politician trades were found for this ticker in the available data. This does not mean none exist — disclosure data can be incomplete or require a paid data plan.",
+            : "No disclosed senator trades were found for this ticker in the past year. Trades are self-reported and may be delayed by up to 45 days.",
       };
       sourcesBySection.politicianTrading = [
         {
-          label: "FMP — Senate trading disclosures",
-          url: publicUrl(`/senate-trades?symbol=${ticker}`),
-        },
-        {
-          label: "FMP — House trading disclosures",
-          url: publicUrl(`/house-trades?symbol=${ticker}`),
+          label: "U.S. Senate eFD — Periodic Transaction Reports",
+          url: `https://efts.senate.gov/LATEST/search.json?q=%22${ticker}%22`,
         },
       ];
     }
@@ -252,6 +252,7 @@ export async function POST(req: Request) {
           revenue: revenueStr,
           netIncome: netIncomeStr,
           profitMargin: marginStr,
+          grossMargin: grossMarginStr,
           debt: debtStr,
           cashFlow: cashFlowStr,
           newsHeadlines: news.slice(0, 5).map((n) => n.title),

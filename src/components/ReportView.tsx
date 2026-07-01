@@ -172,7 +172,10 @@ function renderSection(id: SectionId, report: GeneratedReport) {
           <div className="grid gap-2 sm:grid-cols-3">
             <Stat label="Revenue" value={f.revenue} />
             <Stat label="Net income" value={f.netIncome} />
-            <Stat label="Profit margin" value={f.profitMargin} />
+            <Stat label="Net margin" value={f.profitMargin} />
+            {f.grossMargin && f.grossMargin !== "Data not available" && (
+              <Stat label="Gross margin" value={f.grossMargin} />
+            )}
             <Stat label="Debt" value={f.debt} />
             <Stat label="Operating cash flow" value={f.cashFlow} />
           </div>

@@ -49,6 +49,10 @@ export async function GET(req: Request) {
     income?.revenue && income.revenue !== 0
       ? `${((income.netIncome / income.revenue) * 100).toFixed(1)}%`
       : null;
+  const grossMarginPct =
+    income?.revenue && income.revenue !== 0 && income.grossProfit
+      ? `${((income.grossProfit / income.revenue) * 100).toFixed(1)}%`
+      : null;
 
   return NextResponse.json({
     ticker,
@@ -66,6 +70,7 @@ export async function GET(req: Request) {
       revenue: income ? formatMoney(income.revenue) : null,
       netIncome: income ? formatMoney(income.netIncome) : null,
       profitMargin: profitMarginPct,
+      grossMargin: grossMarginPct,
       totalDebt: balance ? formatMoney(balance.totalDebt) : null,
       operatingCashFlow: cashflow ? formatMoney(cashflow.operatingCashFlow) : null,
     },

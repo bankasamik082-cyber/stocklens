@@ -147,6 +147,20 @@ function findOpCashFlow(cf: FhXbrlItem[]): number | null {
   return null;
 }
 
+function findGrossProfit(ic: FhXbrlItem[]): number | null {
+  const exact = ic.find(
+    (x) => x.value !== null && /^gross profit$/i.test(x.label.trim())
+  );
+  if (exact) return exact.value as number;
+  const fallback = ic.find(
+    (x) =>
+      x.value !== null &&
+      x.label.toLowerCase().includes("gross profit") &&
+      !x.label.toLowerCase().includes("ratio")
+  );
+  return fallback ? (fallback.value as number) : null;
+}
+
 // ---- Exported types (shape kept stable so callers don't need changes) ----
 
 export interface FmpProfile {
@@ -243,9 +257,11 @@ export async function getFinancials(ticker: string): Promise<FinnhubFinancials> 
   const revenue = findRevenue(ic);
   const netIncome = findNetIncome(ic);
 
+  const grossProfit = findGrossProfit(ic);
+
   const income: FmpIncome | null =
     revenue !== null || netIncome !== null
-      ? { date: "", revenue: revenue ?? 0, netIncome: netIncome ?? 0, grossProfit: 0 }
+      ? { date: "", revenue: revenue ?? 0, netIncome: netIncome ?? 0, grossProfit: grossProfit ?? 0 }
       : null;
 
   const totalDebt = findTotalDebt(bs);
@@ -355,16 +371,84 @@ export async function getNewsAroundDate(
   }
 }
 
-// ---- FMP: politician trades (only FMP usage remaining) ----
+// ---- Senate eFD (Electronic Financial Disclosures) — free, no key ----
+// Endpoint: https://efts.senate.gov/LATEST/search.json
+// Returns PTR (Periodic Transaction Reports) filings in ElasticSearch format.
+
+interface SenateEftsHit {
+  _source: {
+    first_name?: string;
+    last_name?: string;
+    transaction_date?: string;
+    asset_description?: string;
+    asset_type?: string;
+    type?: string;
+    amount?: string;
+    comment?: string;
+    senator_id?: string;
+    filing_type?: string;
+    filing_date?: string;
+  };
+}
+
+interface SenateEftsResponse {
+  hits?: {
+    hits?: SenateEftsHit[];
+  };
+  // Some API versions return a top-level data array instead
+  data?: Array<SenateEftsHit["_source"]>;
+}
+
+async function getSenateTrades(ticker: string): Promise<FmpPoliticianTrade[]> {
+  try {
+    const to = new Date().toISOString().slice(0, 10);
+    const from = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    // Wrap ticker in quotes for exact-match search within asset description.
+    const q = encodeURIComponent(`"${ticker}"`);
+    const url = `https://efts.senate.gov/LATEST/search.json?q=${q}&dateRange=custom&fromDate=${from}&toDate=${to}`;
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: { "User-Agent": "StockLens/1.0 (research tool)" },
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as SenateEftsResponse;
+
+    let sources: Array<SenateEftsHit["_source"]> = [];
+    if (data?.hits?.hits?.length) {
+      sources = data.hits.hits.map((h) => h._source);
+    } else if (Array.isArray(data?.data)) {
+      sources = data.data;
+    }
+
+    // Filter to Stock/security asset types only; skip cash, land, etc.
+    return sources
+      .filter((s) => {
+        const at = (s.asset_type || "").toLowerCase();
+        if (!at) return true; // include if unknown
+        return at.includes("stock") || at.includes("equit") || at.includes("securit") || at.includes("option");
+      })
+      .map((s) => ({
+        firstName: s.first_name,
+        lastName: s.last_name,
+        representative: [s.first_name, s.last_name].filter(Boolean).join(" ") || undefined,
+        transactionDate: s.transaction_date,
+        type: s.type,
+        amount: s.amount,
+        party: undefined, // not provided by Senate eFTS
+        symbol: ticker,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// ---- Politician trades — Senate eFD only (House requires paid data or HTML scraping) ----
 
 export async function getPoliticianTrades(ticker: string) {
-  const [senate, house] = await Promise.all([
-    fmpGet<FmpPoliticianTrade[]>(`/senate-trades?symbol=${ticker}`),
-    fmpGet<FmpPoliticianTrade[]>(`/house-trades?symbol=${ticker}`),
-  ]);
+  const senate = await getSenateTrades(ticker);
   return {
-    senate: senate ?? [],
-    house: house ?? [],
+    senate,
+    house: [],
   };
 }
 

@@ -35,7 +35,7 @@ export default async function AlertsPage() {
               Politician Alerts
             </h1>
             <p className="mt-3 text-base" style={{ color: `rgb(var(--t-muted))` }}>
-              Get emailed whenever a tracked House or Senate member files a new
+              Get emailed whenever a tracked senator files a new
               stock trade on a monitored ticker. Alerts run daily via Vercel Cron.
             </p>
             <p className="mt-2 text-sm" style={{ color: `rgb(var(--t-dim))` }}>
@@ -79,7 +79,7 @@ export default async function AlertsPage() {
                 {
                   step: "1",
                   title: "Daily scan",
-                  body: "Once a day a cron job fetches recent trades for 25 widely-held tickers from Financial Modeling Prep's congressional disclosure data.",
+                  body: "Once a day a cron job fetches recent Senate PTR filings for 25 widely-held tickers from the U.S. Senate Electronic Financial Disclosures (eFD) system.",
                 },
                 {
                   step: "2",
@@ -146,9 +146,8 @@ export default async function AlertsPage() {
               ))}
             </div>
             <p className="mt-4 text-xs" style={{ color: `rgb(var(--t-dim))` }}>
-              This list includes politicians known for high-profile or frequent
-              stock trading disclosures. Trades are sourced from Senate and House
-              financial disclosure filings via Financial Modeling Prep.
+              This list includes senators known for high-profile or frequent
+              stock trading disclosures. Trades are sourced from U.S. Senate Electronic Financial Disclosures (efts.senate.gov). House disclosures are not currently included.
             </p>
           </section>
         </main>

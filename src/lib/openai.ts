@@ -14,6 +14,7 @@ export interface NarrativeInput {
   revenue: string;
   netIncome: string;
   profitMargin: string;
+  grossMargin?: string;
   debt: string;
   cashFlow: string;
   newsHeadlines: string[];
