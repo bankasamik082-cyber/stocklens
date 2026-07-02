@@ -352,10 +352,13 @@ function EventMarkersRow({
               className="absolute flex flex-col-reverse items-center"
               style={{ left: `${x}%`, top: "50%", transform: "translate(-50%, -50%)" }}
             >
-              {/* If active, show popover above */}
+              {/* If active, show popover above — flip left when marker is in right half */}
               <AnimatePresence>
                 {isActive && activeEvent && (
-                  <div className="absolute bottom-full mb-1" style={{ transform: "translateX(-50%)", left: "50%" }}>
+                  <div
+                    className="absolute bottom-full mb-1"
+                    style={x > 50 ? { right: 0 } : { left: 0 }}
+                  >
                     <EventPopover
                       event={activeEvent}
                       onClose={() => onToggle(activeEvent)}

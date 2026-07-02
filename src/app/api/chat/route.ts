@@ -11,6 +11,8 @@ const VALID_SOURCES = [
   "Finnhub — Financial statements",
   "Finnhub — Recent news",
   "FMP — Politician trades",
+  "Finnhub — Analyst recommendations",
+  "Finnhub — Insider transactions",
 ] as const;
 type ValidSource = (typeof VALID_SOURCES)[number];
 
@@ -74,6 +76,37 @@ function buildContextBlock(ticker: string, companyName: string, ctx: any): strin
     });
   }
   lines.push("");
+
+  const analyst = ctx.analystConsensus as {
+    period: string; total: number; bullPct: number; holdPct: number; bearPct: number;
+    strongBuy: number; buy: number; hold: number; sell: number; strongSell: number;
+  } | null | undefined;
+  lines.push("--- ANALYST CONSENSUS (source: Finnhub — Analyst recommendations) ---");
+  if (!analyst) {
+    lines.push("No analyst consensus data found for this ticker.");
+  } else {
+    lines.push(`Period: ${analyst.period}`);
+    lines.push(`Total analysts: ${analyst.total}`);
+    lines.push(`Strong Buy: ${analyst.strongBuy}, Buy: ${analyst.buy}, Hold: ${analyst.hold}, Sell: ${analyst.sell}, Strong Sell: ${analyst.strongSell}`);
+    lines.push(`Bullish: ${analyst.bullPct}%, Hold: ${analyst.holdPct}%, Bearish: ${analyst.bearPct}%`);
+  }
+  lines.push("");
+
+  const insider = ctx.insiderActivity as {
+    netShares: number;
+    transactions: Array<{ name: string; type: string; shares: number; value: number | null; date: string }>;
+  } | null | undefined;
+  lines.push("--- INSIDER ACTIVITY (source: Finnhub — Insider transactions) ---");
+  if (!insider || insider.transactions.length === 0) {
+    lines.push("No recent insider transactions found for this ticker.");
+  } else {
+    lines.push(`Net shares across recent transactions: ${insider.netShares >= 0 ? "+" : ""}${insider.netShares.toLocaleString()} (positive = net buying)`);
+    insider.transactions.forEach((t) => {
+      const val = t.value != null ? ` ($${(t.value / 1_000_000).toFixed(2)}M)` : "";
+      lines.push(`  ${t.name}: ${t.type} of ${t.shares.toLocaleString()} shares${val} on ${t.date}`);
+    });
+  }
+  lines.push("");
   lines.push("=== END OF DATA SNAPSHOT ===");
 
   return lines.join("\n");
@@ -121,6 +154,8 @@ Available sources you may cite (use exact strings):
 - "Finnhub — Financial statements"
 - "Finnhub — Recent news"
 - "FMP — Politician trades"
+- "Finnhub — Analyst recommendations"
+- "Finnhub — Insider transactions"
 
 ${contextBlock}
 
@@ -137,7 +172,7 @@ Respond with ONLY valid JSON — no markdown, no code fences:
       parts: [
         {
           text: JSON.stringify({
-            answer: `I have the data snapshot for ${ticker} loaded. Ask me about the financials, recent news, or disclosed politician trades.`,
+            answer: `I have the data snapshot for ${ticker} loaded. Ask me about the financials, recent news, disclosed politician trades, analyst consensus, or insider transactions.`,
             sources: [],
           }),
         },
