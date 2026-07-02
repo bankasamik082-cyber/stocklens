@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LineChart,
@@ -209,13 +209,27 @@ function EventPopover({
   const isBeat = event.beat === true;
   const isMiss = event.beat === false;
 
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [nudge, setNudge] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const rightOverflow = rect.right - (window.innerWidth - 8);
+    const leftOverflow = 8 - rect.left;
+    if (rightOverflow > 0) setNudge(-rightOverflow);
+    else if (leftOverflow > 0) setNudge(leftOverflow);
+  }, []);
+
   return (
+    <div ref={wrapRef} style={nudge ? { transform: `translateX(${nudge}px)` } : undefined}>
     <motion.div
       initial={{ opacity: 0, y: 6, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 4, scale: 0.95 }}
       transition={{ duration: 0.15 }}
-      className="absolute bottom-full mb-3 z-30 w-64 rounded-xl border shadow-2xl"
+      className="w-64 rounded-xl border shadow-2xl"
       style={{
         borderColor: `rgb(${EVENT_STYLES[event.type].color} / 0.3)`,
         backgroundColor: `rgb(var(--t-card))`,
@@ -286,6 +300,7 @@ function EventPopover({
         )}
       </div>
     </motion.div>
+    </div>
   );
 }
 
@@ -352,12 +367,12 @@ function EventMarkersRow({
               className="absolute flex flex-col-reverse items-center"
               style={{ left: `${x}%`, top: "50%", transform: "translate(-50%, -50%)" }}
             >
-              {/* If active, show popover above — flip left when marker is in right half */}
+              {/* Popover: centered on dot, viewport-aware nudge handled inside EventPopover */}
               <AnimatePresence>
                 {isActive && activeEvent && (
                   <div
-                    className="absolute bottom-full mb-1"
-                    style={x > 50 ? { right: 0 } : { left: 0 }}
+                    className="absolute bottom-full mb-4 z-30"
+                    style={{ left: "50%", transform: "translateX(-50%)" }}
                   >
                     <EventPopover
                       event={activeEvent}

@@ -1,9 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useLayoutEffect } from "react";
 
-export function InfoTooltip({ text, above = false }: { text: string; above?: boolean }) {
+export function InfoTooltip({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
+  const tooltipRef = useRef<HTMLSpanElement>(null);
+  const [nudge, setNudge] = useState(0);
+
+  useLayoutEffect(() => {
+    if (!open || !tooltipRef.current) return;
+    const rect = tooltipRef.current.getBoundingClientRect();
+    const rightOverflow = rect.right - (window.innerWidth - 8);
+    setNudge(rightOverflow > 0 ? -rightOverflow : 0);
+  }, [open]);
+
   return (
     <span className="relative inline-block align-middle">
       <button
@@ -21,11 +31,13 @@ export function InfoTooltip({ text, above = false }: { text: string; above?: boo
       </button>
       {open && (
         <span
+          ref={tooltipRef}
           className="absolute z-50 w-52 rounded-lg border px-2.5 py-2 text-[11px] leading-relaxed shadow-xl pointer-events-none"
           style={{
-            ...(above
-              ? { bottom: "100%", marginBottom: 4, left: 0 }
-              : { top: "100%", marginTop: 4, left: 0 }),
+            top: "100%",
+            marginTop: 4,
+            left: 0,
+            transform: nudge ? `translateX(${nudge}px)` : undefined,
             borderColor: `rgb(var(--t-border) / 0.8)`,
             backgroundColor: `rgb(var(--t-card))`,
             color: `rgb(var(--t-muted))`,
