@@ -5,6 +5,9 @@ import {
   getFinancials,
   getNews,
   getPoliticianTrades,
+  getAnalystRecommendations,
+  getInsiderTransactions,
+  getPeers,
   formatMoney,
   formatPct,
   finnhubPublicUrl,
@@ -29,6 +32,8 @@ const VALID_SECTIONS: SectionId[] = [
   "financialHealth",
   "recentNews",
   "politicianTrading",
+  "analystConsensus",
+  "insiderActivity",
   "bullCase",
   "bearCase",
   "finalVerdict",
@@ -96,11 +101,13 @@ export async function POST(req: Request) {
       sections.includes("finalVerdict"),
     news: sections.includes("recentNews"),
     politician: sections.includes("politicianTrading"),
+    analyst: sections.includes("analystConsensus") || sections.includes("bullCase") || sections.includes("bearCase") || sections.includes("finalVerdict"),
+    insider: sections.includes("insiderActivity") || sections.includes("bullCase") || sections.includes("bearCase") || sections.includes("finalVerdict"),
   };
 
   try {
-    // Fetch profile, financials (one Finnhub call), politician trades, and CIK in parallel.
-    const [profile, financials, politician, cik] = await Promise.all([
+    // Fetch all data sources in parallel.
+    const [profile, financials, politician, cik, analyst, insider, peers] = await Promise.all([
       need.profile ? getProfile(ticker) : Promise.resolve(null),
       need.financials
         ? getFinancials(ticker)
@@ -109,6 +116,9 @@ export async function POST(req: Request) {
         ? getPoliticianTrades(ticker)
         : Promise.resolve({ senate: [], house: [] }),
       need.profile || need.financials ? getCik(ticker) : Promise.resolve(null),
+      need.analyst ? getAnalystRecommendations(ticker) : Promise.resolve(null),
+      need.insider ? getInsiderTransactions(ticker) : Promise.resolve(null),
+      need.profile ? getPeers(ticker) : Promise.resolve([] as string[]),
     ]);
 
     const { income, balance, cashflow } = financials;
@@ -232,6 +242,31 @@ export async function POST(req: Request) {
       ];
     }
 
+    if (sections.includes("analystConsensus")) {
+      report.analystConsensus = analyst ?? undefined;
+      sourcesBySection.analystConsensus = [
+        {
+          label: "Finnhub — Analyst Recommendations",
+          url: finnhubPublicUrl(`/stock/recommendation?symbol=${ticker}`),
+        },
+      ];
+    }
+
+    if (sections.includes("insiderActivity")) {
+      report.insiderActivity = insider ?? undefined;
+      sourcesBySection.insiderActivity = [
+        {
+          label: "Finnhub — Insider Transactions",
+          url: finnhubPublicUrl(`/stock/insider-transactions?symbol=${ticker}`),
+        },
+      ];
+    }
+
+    // Always store peers when profile is fetched — used by ReportView regardless of sections
+    if (peers && peers.length > 0) {
+      report.peers = peers;
+    }
+
     const narrativeReq = toNarrativeRequest(sections);
     const wantsNarrative =
       narrativeReq.whatItDoes ||
@@ -257,6 +292,9 @@ export async function POST(req: Request) {
           cashFlow: cashFlowStr,
           newsHeadlines: news.slice(0, 5).map((n) => n.title),
           hasPoliticianData: report.politicianTrading?.hasData ?? false,
+          analystBullPct: analyst?.bullPct,
+          analystTotal: analyst?.total,
+          insiderNetShares: insider?.netShares,
         },
         narrativeReq
       );

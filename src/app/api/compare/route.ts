@@ -4,6 +4,7 @@ import {
   getProfile,
   getFinancials,
   getPoliticianTrades,
+  getAnalystRecommendations,
   formatMoney,
 } from "@/lib/fmp";
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -77,14 +78,18 @@ export interface CompanyCompareData {
   } | null;
   // Politician trading
   politicianTradeCount: number;
+  // Analyst consensus
+  analystBullPct: number | null;
+  analystTotal: number | null;
 }
 
 async function fetchCompanyData(ticker: string): Promise<CompanyCompareData> {
-  const [profile, financials, trades, earnings] = await Promise.all([
+  const [profile, financials, trades, earnings, analyst] = await Promise.all([
     getProfile(ticker),
     getFinancials(ticker),
     getPoliticianTrades(ticker),
     getLastEarnings(ticker),
+    getAnalystRecommendations(ticker).catch(() => null),
   ]);
 
   const { income, balance, cashflow } = financials;
@@ -114,6 +119,8 @@ async function fetchCompanyData(ticker: string): Promise<CompanyCompareData> {
         }
       : null,
     politicianTradeCount: trades.senate.length + trades.house.length,
+    analystBullPct: analyst?.bullPct ?? null,
+    analystTotal: analyst?.total ?? null,
   };
 }
 
@@ -141,6 +148,11 @@ function buildSummaryPrompt(companies: CompanyCompareData[]): string {
     lines.push(
       `  Disclosed politician trades: ${c.politicianTradeCount}`
     );
+    if (c.analystBullPct !== null && c.analystTotal !== null) {
+      lines.push(
+        `  Analyst consensus: ${c.analystBullPct}% bullish (${c.analystTotal} analysts)`
+      );
+    }
     return lines.join("\n");
   });
 

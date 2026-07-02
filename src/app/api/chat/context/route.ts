@@ -5,6 +5,8 @@ import {
   getFinancials,
   getNews,
   getPoliticianTrades,
+  getAnalystRecommendations,
+  getInsiderTransactions,
   formatMoney,
   type FmpPoliticianTrade,
 } from "@/lib/fmp";
@@ -36,10 +38,12 @@ export async function GET(req: Request) {
   }
 
   // All data sources in parallel — reuse the same lib functions as /api/analyze
-  const [profile, financials, trades] = await Promise.all([
+  const [profile, financials, trades, analyst, insider] = await Promise.all([
     getProfile(ticker),
     getFinancials(ticker),
     getPoliticianTrades(ticker),
+    getAnalystRecommendations(ticker).catch(() => null),
+    getInsiderTransactions(ticker, 5).catch(() => null),
   ]);
 
   const news = await getNews(ticker, profile?.companyName || ticker, 8);
@@ -83,6 +87,32 @@ export async function GET(req: Request) {
     })),
     senatorTrades: trades.senate.slice(0, 8).map(normalizeTrade),
     houseTrades: trades.house.slice(0, 8).map(normalizeTrade),
+    analystConsensus: analyst
+      ? {
+          period: analyst.period,
+          total: analyst.total,
+          bullPct: analyst.bullPct,
+          holdPct: analyst.holdPct,
+          bearPct: analyst.bearPct,
+          strongBuy: analyst.strongBuy,
+          buy: analyst.buy,
+          hold: analyst.hold,
+          sell: analyst.sell,
+          strongSell: analyst.strongSell,
+        }
+      : null,
+    insiderActivity: insider
+      ? {
+          netShares: insider.netShares,
+          transactions: insider.transactions.map((t) => ({
+            name: t.name,
+            type: t.transactionType,
+            shares: t.shares,
+            value: t.value,
+            date: t.date,
+          })),
+        }
+      : null,
     loadedAt: new Date().toISOString(),
   });
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge, scoreTone, confidenceTone } from "@/components/Badge";
 import {
   GeneratedReport,
@@ -128,6 +129,39 @@ export function ReportView({
           </div>
         </section>
       ))}
+
+      {report.peers && report.peers.length > 0 && (
+        <div
+          className="rounded-2xl border px-5 py-4"
+          style={{
+            borderColor: `rgb(var(--t-border) / 0.7)`,
+            backgroundColor: `rgb(var(--t-surface))`,
+          }}
+        >
+          <p
+            className="mb-3 text-[10px] font-semibold uppercase tracking-widest"
+            style={{ color: `rgb(var(--t-dim))` }}
+          >
+            Related companies
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {report.peers.map((peer) => (
+              <Link
+                key={peer}
+                href={`/dashboard?ticker=${peer}`}
+                className="rounded-lg border px-3 py-1.5 font-mono text-xs font-semibold transition-colors"
+                style={{
+                  borderColor: `rgb(var(--t-border) / 0.6)`,
+                  color: `rgb(var(--t-accent))`,
+                  backgroundColor: `rgb(var(--t-accent) / 0.06)`,
+                }}
+              >
+                {peer}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -227,6 +261,118 @@ function renderSection(id: SectionId, report: GeneratedReport) {
             </li>
           ))}
         </ul>
+      );
+    }
+    case "analystConsensus": {
+      const a = report.analystConsensus;
+      if (!a)
+        return (
+          <p className="text-sm" style={{ color: `rgb(var(--t-muted))` }}>
+            No analyst consensus data found for this ticker.
+          </p>
+        );
+      return (
+        <div className="space-y-5">
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Stat label="Strong buy + Buy" value={`${a.strongBuy + a.buy} (${a.bullPct}%)`} />
+            <Stat label="Hold" value={`${a.hold} (${a.holdPct}%)`} />
+            <Stat label="Sell + Strong sell" value={`${a.sell + a.strongSell} (${a.bearPct}%)`} />
+          </div>
+          <div>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: `rgb(var(--t-dim))` }}>
+              Consensus breakdown — {a.total} analysts · {a.period}
+            </p>
+            <div className="flex h-4 w-full overflow-hidden rounded-full" style={{ backgroundColor: `rgb(var(--t-border) / 0.4)` }}>
+              <div
+                className="h-full transition-all"
+                style={{ width: `${a.bullPct}%`, backgroundColor: `rgb(var(--t-success))` }}
+                title={`Bullish ${a.bullPct}%`}
+              />
+              <div
+                className="h-full transition-all"
+                style={{ width: `${a.holdPct}%`, backgroundColor: `rgb(var(--t-accent) / 0.5)` }}
+                title={`Hold ${a.holdPct}%`}
+              />
+              <div
+                className="h-full transition-all"
+                style={{ width: `${a.bearPct}%`, backgroundColor: `rgb(var(--t-danger))` }}
+                title={`Bearish ${a.bearPct}%`}
+              />
+            </div>
+            <div className="mt-2 flex gap-4 text-[10px]" style={{ color: `rgb(var(--t-dim))` }}>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: `rgb(var(--t-success))` }} />
+                Bullish
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: `rgb(var(--t-accent) / 0.5)` }} />
+                Hold
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: `rgb(var(--t-danger))` }} />
+                Bearish
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    case "insiderActivity": {
+      const ins = report.insiderActivity;
+      if (!ins || ins.transactions.length === 0)
+        return (
+          <p className="text-sm" style={{ color: `rgb(var(--t-muted))` }}>
+            No recent insider transactions found for this ticker.
+          </p>
+        );
+      const netPositive = ins.netShares >= 0;
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <span
+              className="rounded-lg px-3 py-1 text-xs font-semibold"
+              style={{
+                backgroundColor: `rgb(var(${netPositive ? "--t-success" : "--t-danger"}) / 0.12)`,
+                color: `rgb(var(${netPositive ? "--t-success" : "--t-danger"}))`,
+              }}
+            >
+              Net {netPositive ? "+" : ""}{ins.netShares.toLocaleString()} shares
+            </span>
+            <span className="text-xs" style={{ color: `rgb(var(--t-dim))` }}>
+              across {ins.transactions.length} recent transactions
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: `rgb(var(--t-dim))` }}>
+                  <th className="pb-3 pr-4">Insider</th>
+                  <th className="pb-3 pr-4">Type</th>
+                  <th className="pb-3 pr-4">Shares</th>
+                  <th className="pb-3 pr-4">Value</th>
+                  <th className="pb-3">Date</th>
+                </tr>
+              </thead>
+              <tbody style={{ color: `rgb(var(--t-muted))` }}>
+                {ins.transactions.map((t, i) => (
+                  <tr key={i} className="border-t" style={{ borderColor: `rgb(var(--t-border) / 0.4)` }}>
+                    <td className="py-2.5 pr-4 text-sm font-medium" style={{ color: `rgb(var(--t-text))` }}>{t.name}</td>
+                    <td className="py-2.5 pr-4">
+                      <Badge tone={t.transactionCode === "P" ? "good" : t.transactionCode === "S" ? "warn" : "neutral"}>
+                        {t.transactionType}
+                      </Badge>
+                    </td>
+                    <td className="py-2.5 pr-4 font-mono text-xs">{t.shares.toLocaleString()}</td>
+                    <td className="py-2.5 pr-4 font-mono text-xs">
+                      {t.value != null ? `$${(t.value / 1_000_000).toFixed(2)}M` : "—"}
+                    </td>
+                    <td className="py-2.5 font-mono text-xs" style={{ color: `rgb(var(--t-dim))` }}>{t.date}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       );
     }
     case "politicianTrading": {

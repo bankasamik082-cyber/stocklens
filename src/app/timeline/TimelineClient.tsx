@@ -154,17 +154,19 @@ function TickerSearch({ onSelect }: { onSelect: (symbol: string, name: string) =
 
 // ---- Event colour / shape helpers -------------------------------------------
 
-const EVENT_STYLES = {
-  earnings: { color: "var(--t-accent)", label: "Earnings" },
-  news:     { color: "var(--t-success)", label: "News" },
-  politician: { color: "var(--t-warn)", label: "Politician trade" },
-} as const;
+type EventType = "earnings" | "news" | "politician" | "insider" | "analystChange";
+
+const EVENT_STYLES: Record<EventType, { color: string; label: string }> = {
+  earnings:      { color: "var(--t-accent)", label: "Earnings" },
+  news:          { color: "var(--t-success)", label: "News" },
+  politician:    { color: "var(--t-warn)", label: "Politician trade" },
+  insider:       { color: "20, 184, 166", label: "Insider transaction" },
+  analystChange: { color: "100, 116, 139", label: "Analyst shift" },
+};
 
 function dotColor(type: EventType) {
   return `rgb(${EVENT_STYLES[type].color})`;
 }
-
-type EventType = "earnings" | "news" | "politician";
 
 // ---- Recharts custom price tooltip ------------------------------------------
 
@@ -403,7 +405,7 @@ function EventMarkersRow({
 function Legend() {
   return (
     <div className="flex flex-wrap items-center gap-4">
-      {(["earnings", "news", "politician"] as EventType[]).map((type) => (
+      {(["earnings", "news", "politician", "insider", "analystChange"] as EventType[]).map((type) => (
         <div key={type} className="flex items-center gap-1.5">
           <span
             className="h-2.5 w-2.5 rounded-full"
@@ -421,7 +423,10 @@ function Legend() {
 // ---- Event list (chronological, newest first) --------------------------------
 
 function EventBadge({ type }: { type: EventType }) {
-  const labels = { earnings: "EARNINGS", news: "NEWS", politician: "TRADE" };
+  const labels: Record<EventType, string> = {
+    earnings: "EARNINGS", news: "NEWS", politician: "TRADE",
+    insider: "INSIDER", analystChange: "ANALYST",
+  };
   return (
     <span
       className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"

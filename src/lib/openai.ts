@@ -19,6 +19,9 @@ export interface NarrativeInput {
   cashFlow: string;
   newsHeadlines: string[];
   hasPoliticianData: boolean;
+  analystBullPct?: number;
+  analystTotal?: number;
+  insiderNetShares?: number;
 }
 
 export interface NarrativeRequest {

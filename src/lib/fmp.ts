@@ -371,6 +371,104 @@ export async function getNewsAroundDate(
   }
 }
 
+// ---- Finnhub: analyst recommendations ----
+
+interface FhRecommendation {
+  symbol: string;
+  period: string;
+  strongBuy: number;
+  buy: number;
+  hold: number;
+  sell: number;
+  strongSell: number;
+}
+
+export async function getAnalystRecommendations(ticker: string) {
+  const data = await fhGet<FhRecommendation[]>(`/stock/recommendation?symbol=${ticker}`);
+  if (!data || !Array.isArray(data) || data.length === 0) return null;
+  // Most recent period first
+  const sorted = [...data].sort((a, b) => (a.period > b.period ? -1 : 1));
+  const latest = sorted[0];
+  const total = latest.strongBuy + latest.buy + latest.hold + latest.sell + latest.strongSell;
+  if (total === 0) return null;
+  return {
+    period: latest.period,
+    strongBuy: latest.strongBuy,
+    buy: latest.buy,
+    hold: latest.hold,
+    sell: latest.sell,
+    strongSell: latest.strongSell,
+    total,
+    bullPct: +((( latest.strongBuy + latest.buy) / total) * 100).toFixed(1),
+    holdPct: +((latest.hold / total) * 100).toFixed(1),
+    bearPct: +((( latest.sell + latest.strongSell) / total) * 100).toFixed(1),
+    // Second most recent for trend detection in timeline
+    prev: sorted[1] ?? null,
+  };
+}
+
+// ---- Finnhub: insider transactions ----
+
+interface FhInsiderTx {
+  name: string;
+  share: number;
+  change: number;
+  filingDate: string;
+  transactionDate: string;
+  transactionCode: string;
+  transactionPrice: number;
+  id: string;
+  symbol: string;
+  isDerivative: boolean;
+}
+
+const INSIDER_CODE_LABELS: Record<string, string> = {
+  P: "Purchase",
+  S: "Sale",
+  F: "Tax withholding",
+  G: "Gift",
+  M: "Option exercise",
+  A: "Award",
+  D: "Disposition",
+};
+
+export async function getInsiderTransactions(ticker: string, limit = 10) {
+  const raw = await fhGet<{ data: FhInsiderTx[] }>(`/stock/insider-transactions?symbol=${ticker}`);
+  if (!raw?.data?.length) return null;
+
+  // Only non-derivative open-market transactions
+  const filtered = raw.data
+    .filter((t) => !t.isDerivative && t.transactionDate)
+    .slice(0, limit);
+
+  const transactions = filtered.map((t) => ({
+    name: toTitleCase(t.name),
+    transactionCode: t.transactionCode,
+    transactionType: INSIDER_CODE_LABELS[t.transactionCode] ?? t.transactionCode,
+    shares: Math.abs(t.change),
+    pricePerShare: t.transactionPrice > 0 ? t.transactionPrice : null,
+    value: t.transactionPrice > 0 ? Math.abs(t.change) * t.transactionPrice : null,
+    date: t.transactionDate,
+  }));
+
+  const netShares = filtered.reduce((sum, t) => sum + t.change, 0);
+
+  return { transactions, netShares };
+}
+
+function toTitleCase(s: string): string {
+  return s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// ---- Finnhub: peer companies ----
+
+export async function getPeers(ticker: string): Promise<string[]> {
+  const data = await fhGet<string[]>(`/stock/peers?symbol=${ticker}`);
+  if (!Array.isArray(data)) return [];
+  // Exclude the ticker itself from its own peer list
+  return data.filter((p) => p !== ticker).slice(0, 10);
+}
+
 // ---- Senate eFD (Electronic Financial Disclosures) — free, no key ----
 // Endpoint: https://efts.senate.gov/LATEST/search.json
 // Returns PTR (Periodic Transaction Reports) filings in ElasticSearch format.

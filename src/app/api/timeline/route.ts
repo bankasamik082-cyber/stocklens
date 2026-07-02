@@ -13,7 +13,7 @@ function fhKey() {
 
 // ---- Types ------------------------------------------------------------------
 
-export type EventType = "earnings" | "news" | "politician";
+export type EventType = "earnings" | "news" | "politician" | "insider" | "analystChange";
 
 export interface TimelineEvent {
   id: string;          // unique key for React
@@ -32,6 +32,12 @@ export interface TimelineEvent {
   party?: string;
   tradeType?: string;
   amount?: string;
+  // Insider
+  insiderName?: string;
+  insiderCode?: string;
+  // Analyst
+  bullPct?: number;
+  bullPctPrev?: number;
 }
 
 // ---- Finnhub earnings -------------------------------------------------------
@@ -124,6 +130,53 @@ function capNewsByMonth<T extends { publishedDate: string }>(
   return result;
 }
 
+// ---- Finnhub insider transactions -------------------------------------------
+
+interface FhInsiderRaw {
+  name: string;
+  transactionCode: string;
+  change: number;
+  transactionPrice: number;
+  transactionDate: string;
+  isDerivative: boolean;
+}
+
+async function fetchInsiderTransactions(ticker: string): Promise<FhInsiderRaw[]> {
+  try {
+    const url = `${FH_BASE}/stock/insider-transactions?symbol=${ticker}&token=${fhKey()}`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return [];
+    const data = await res.json() as { data?: FhInsiderRaw[] };
+    return Array.isArray(data?.data) ? data.data : [];
+  } catch {
+    return [];
+  }
+}
+
+// ---- Finnhub analyst recommendations ----------------------------------------
+
+interface FhRecommendation {
+  period: string;
+  strongBuy: number;
+  buy: number;
+  hold: number;
+  sell: number;
+  strongSell: number;
+}
+
+async function fetchAllRecommendations(ticker: string): Promise<FhRecommendation[]> {
+  try {
+    const url = `${FH_BASE}/stock/recommendation?symbol=${ticker}&token=${fhKey()}`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
+    return (data as FhRecommendation[]).sort((a, b) => (a.period < b.period ? -1 : 1));
+  } catch {
+    return [];
+  }
+}
+
 // ---- Politician trade normalisation -----------------------------------------
 
 function normaliseTrade(t: FmpPoliticianTrade, idx: number) {
@@ -157,9 +210,11 @@ export async function GET(req: Request) {
     fetchEarnings(ticker).catch((): FhEarnings[] => []),
     fetchYearNews(ticker).catch(() => [] as Array<{ title: string; publishedDate: string; source: string; url: string }>),
     getPoliticianTrades(ticker).catch(() => ({ senate: [] as FmpPoliticianTrade[], house: [] as FmpPoliticianTrade[] })),
+    fetchInsiderTransactions(ticker).catch((): FhInsiderRaw[] => []),
+    fetchAllRecommendations(ticker).catch((): FhRecommendation[] => []),
   ]);
 
-  const [prices, earningsRaw, newsRaw, trades] = fetchResult;
+  const [prices, earningsRaw, newsRaw, trades, insiderRaw, recommendationsRaw] = fetchResult;
 
   if (!prices.length) {
     return NextResponse.json(
@@ -229,11 +284,60 @@ export async function GET(req: Request) {
     amount: t.amount,
   }));
 
+  // Build insider events (P=Purchase and S=Sale only, past year)
+  const INSIDER_LABELS: Record<string, string> = { P: "Purchase", S: "Sale" };
+  const insiderEvents: TimelineEvent[] = insiderRaw
+    .filter((t) => !t.isDerivative && ["P", "S"].includes(t.transactionCode) && t.transactionDate >= yearAgoStr)
+    .slice(0, 20)
+    .map((t, i) => {
+      const label = INSIDER_LABELS[t.transactionCode] ?? t.transactionCode;
+      const shares = Math.abs(t.change).toLocaleString();
+      const value = t.transactionPrice > 0
+        ? ` ($${(Math.abs(t.change) * t.transactionPrice / 1_000_000).toFixed(2)}M)`
+        : "";
+      return {
+        id: `ins-${i}`,
+        date: t.transactionDate,
+        type: "insider" as const,
+        title: `Insider ${label} — ${t.name}`,
+        detail: `${t.name}: ${label} of ${shares} shares${value}.`,
+        insiderName: t.name,
+        insiderCode: t.transactionCode,
+      };
+    });
+
+  // Build analyst change events (month-over-month shifts >= 5pp)
+  const analystEvents: TimelineEvent[] = [];
+  for (let i = 1; i < recommendationsRaw.length; i++) {
+    const prev = recommendationsRaw[i - 1];
+    const curr = recommendationsRaw[i];
+    if (curr.period < yearAgoStr) continue;
+    const totalPrev = prev.strongBuy + prev.buy + prev.hold + prev.sell + prev.strongSell;
+    const totalCurr = curr.strongBuy + curr.buy + curr.hold + curr.sell + curr.strongSell;
+    if (totalPrev === 0 || totalCurr === 0) continue;
+    const bullPrev = +((( prev.strongBuy + prev.buy) / totalPrev) * 100).toFixed(1);
+    const bullCurr = +((( curr.strongBuy + curr.buy) / totalCurr) * 100).toFixed(1);
+    const delta = bullCurr - bullPrev;
+    if (Math.abs(delta) < 5) continue;
+    const direction = delta > 0 ? "improved" : "declined";
+    analystEvents.push({
+      id: `analyst-${i}`,
+      date: curr.period + "-01",
+      type: "analystChange" as const,
+      title: `Analyst sentiment ${direction} (${delta > 0 ? "+" : ""}${delta.toFixed(1)}pp)`,
+      detail: `Bullish % ${direction} from ${bullPrev}% to ${bullCurr}% (${totalCurr} analysts, ${curr.period}).`,
+      bullPct: bullCurr,
+      bullPctPrev: bullPrev,
+    });
+  }
+
   // Merge and sort by date (oldest → newest)
   const events: TimelineEvent[] = [
     ...earningsEvents,
     ...newsEvents,
     ...politicianEvents,
+    ...insiderEvents,
+    ...analystEvents,
   ].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 
   return NextResponse.json({ ticker, prices, events });

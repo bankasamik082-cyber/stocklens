@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import type { CompanyCompareData } from "@/app/api/compare/route";
 
 // ---- TickerPicker -----------------------------------------------------------
@@ -242,6 +242,22 @@ const ROW_DEFS: RowDef[] = [
     rawKey: undefined,
     render: (c) => c.lastEps ? fmtSurprise(c.lastEps.surprisePct) : <span style={{ color: `rgb(var(--t-dim))` }}>—</span>,
   },
+  // Analyst Consensus
+  {
+    section: "Analyst Consensus", label: "Bullish %", direction: "higher", rawKey: "analystBullPct",
+    render: (c) => c.analystBullPct !== null
+      ? (
+        <span>
+          <span style={{ color: `rgb(var(--t-success))` }}>{c.analystBullPct}%</span>
+          {c.analystTotal !== null && (
+            <span className="ml-1 text-[10px]" style={{ color: `rgb(var(--t-dim))` }}>
+              / {c.analystTotal} analysts
+            </span>
+          )}
+        </span>
+      )
+      : <span style={{ color: `rgb(var(--t-dim))` }}>—</span>,
+  },
   // Politician Trading
   {
     section: "Politician Trading", label: "Disclosed Trades", direction: "none",
@@ -454,8 +470,22 @@ export function CompareClient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [peers, setPeers] = useState<string[]>([]);
+
   const filled = slots.filter(Boolean) as SelectedTicker[];
   const canCompare = filled.length >= 2;
+
+  // Fetch peers when exactly one slot is filled
+  useEffect(() => {
+    if (filled.length !== 1) { setPeers([]); return; }
+    const ticker = filled[0].symbol;
+    let cancelled = false;
+    fetch(`/api/peers?ticker=${encodeURIComponent(ticker)}`)
+      .then((r) => r.ok ? r.json() : { peers: [] })
+      .then((d: { peers?: string[] }) => { if (!cancelled) setPeers(d.peers ?? []); })
+      .catch(() => { if (!cancelled) setPeers([]); });
+    return () => { cancelled = true; };
+  }, [filled.length === 1 ? filled[0].symbol : ""]);
 
   function setSlot(index: number, val: SelectedTicker | null) {
     setSlots((prev) => {
@@ -494,6 +524,8 @@ export function CompareClient() {
       operatingCashFlowRaw: null,
       lastEps: null,
       politicianTradeCount: 0,
+      analystBullPct: null,
+      analystTotal: null,
     }));
     setCompanies(skeletonData);
 
@@ -545,6 +577,36 @@ export function CompareClient() {
             />
           ))}
         </div>
+
+        {filled.length === 1 && peers.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: `rgb(var(--t-dim))` }}>
+              Compare {filled[0].symbol} with…
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {peers.map((peer) => {
+                const alreadyAdded = slots.some((s) => s?.symbol === peer);
+                const firstEmpty = slots.findIndex((s) => s === null);
+                return (
+                  <button
+                    key={peer}
+                    type="button"
+                    disabled={alreadyAdded || firstEmpty === -1}
+                    onClick={() => { if (!alreadyAdded && firstEmpty !== -1) setSlot(firstEmpty, { symbol: peer, name: peer }); }}
+                    className="rounded-lg border px-3 py-1.5 font-mono text-xs font-semibold transition disabled:opacity-40"
+                    style={{
+                      borderColor: `rgb(var(--t-border) / 0.6)`,
+                      color: `rgb(var(--t-accent))`,
+                      backgroundColor: `rgb(var(--t-accent) / 0.06)`,
+                    }}
+                  >
+                    {peer}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 flex items-center gap-3">
           <button

@@ -5,6 +5,8 @@ export type SectionId =
   | "financialHealth"
   | "recentNews"
   | "politicianTrading"
+  | "analystConsensus"
+  | "insiderActivity"
   | "bullCase"
   | "bearCase"
   | "finalVerdict";
@@ -14,6 +16,8 @@ export const SECTION_LABELS: Record<SectionId, string> = {
   financialHealth: "Financial health",
   recentNews: "Recent news",
   politicianTrading: "Politician trading activity",
+  analystConsensus: "Analyst consensus",
+  insiderActivity: "Insider activity",
   bullCase: "Bull case",
   bearCase: "Bear case",
   finalVerdict: "Final verdict",
@@ -24,6 +28,8 @@ export const SECTION_ORDER: SectionId[] = [
   "financialHealth",
   "recentNews",
   "politicianTrading",
+  "analystConsensus",
+  "insiderActivity",
   "bullCase",
   "bearCase",
   "finalVerdict",
@@ -81,15 +87,46 @@ export interface FinalVerdict {
   confidence: ConfidenceLevel;
 }
 
+export interface AnalystConsensus {
+  period: string;
+  strongBuy: number;
+  buy: number;
+  hold: number;
+  sell: number;
+  strongSell: number;
+  total: number;
+  bullPct: number;
+  holdPct: number;
+  bearPct: number;
+}
+
+export interface InsiderTransaction {
+  name: string;
+  transactionCode: string;
+  transactionType: string;
+  shares: number;
+  pricePerShare: number | null;
+  value: number | null;
+  date: string;
+}
+
+export interface InsiderActivity {
+  transactions: InsiderTransaction[];
+  netShares: number;
+}
+
 // The full report. Every field is optional because the user picks sections.
 export interface GeneratedReport {
   companyOverview?: CompanyOverview;
   financialHealth?: FinancialHealth;
   recentNews?: { items: NewsItem[] };
   politicianTrading?: PoliticianTrading;
+  analystConsensus?: AnalystConsensus;
+  insiderActivity?: InsiderActivity;
   bullCase?: { reasons: string[] };
   bearCase?: { risks: string[] };
   finalVerdict?: FinalVerdict;
+  peers?: string[];
 }
 
 // Sources are stored per section so the report page can show a
