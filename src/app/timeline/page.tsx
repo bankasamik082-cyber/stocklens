@@ -18,7 +18,10 @@ export default async function TimelinePage() {
             <div className="label mb-2">Research Tool</div>
             <h1
               className="text-3xl font-bold tracking-tight"
-              style={{ color: `rgb(var(--t-text))` }}
+              style={{
+                color: `rgb(var(--t-text))`,
+                fontFamily: `'Clash Display', var(--font-sans), sans-serif`,
+              }}
             >
               Investment Timeline
             </h1>

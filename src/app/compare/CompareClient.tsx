@@ -326,15 +326,25 @@ function ComparisonTable({
   const colCount = companies.length;
 
   return (
-    <div className="overflow-x-auto rounded-2xl border" style={{ borderColor: `rgb(var(--t-border) / 0.7)` }}>
+    <div
+      className="overflow-x-auto rounded-3xl border"
+      style={{
+        borderColor: `rgba(255,255,255,0.08)`,
+        backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
+        backdropFilter: `var(--card-blur, none)`,
+        WebkitBackdropFilter: `var(--card-blur, none)`,
+        boxShadow: `var(--card-shadow, none)`,
+      }}
+    >
       <table className="w-full border-collapse" data-testid="compare-table">
         {/* Column headers = company names */}
         <thead>
-          <tr style={{ backgroundColor: `rgb(var(--t-surface))` }}>
+          <tr style={{ backgroundColor: `rgba(255,255,255,0.02)` }}>
             <th
-              className="border-b border-r px-5 py-4 text-left text-[10px] font-semibold uppercase tracking-widest"
+              className="px-5 py-4 text-left text-[10px] font-semibold uppercase tracking-widest"
               style={{
-                borderColor: `rgb(var(--t-border) / 0.5)`,
+                borderBottom: `1px solid rgba(255,255,255,0.06)`,
+                borderRight: `1px solid rgba(255,255,255,0.06)`,
                 color: `rgb(var(--t-dim))`,
                 width: "160px",
                 minWidth: "140px",
@@ -345,16 +355,33 @@ function ComparisonTable({
             {companies.map((c, ci) => (
               <th
                 key={c.ticker}
-                className="border-b px-5 py-4 text-left"
+                className="px-5 py-4 text-left"
                 style={{
-                  borderColor: `rgb(var(--t-border) / 0.5)`,
-                  borderRight: ci < colCount - 1 ? `1px solid rgb(var(--t-border) / 0.3)` : undefined,
+                  borderBottom: `1px solid rgba(255,255,255,0.06)`,
+                  borderRight: ci < colCount - 1 ? `1px solid rgba(255,255,255,0.04)` : undefined,
                 }}
                 data-testid={`company-header-${c.ticker}`}
               >
+                {ci > 0 && (
+                  <div className="mb-2 flex items-center gap-2">
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[9px] font-bold"
+                      style={{
+                        backgroundColor: `rgba(255,255,255,0.06)`,
+                        color: `rgb(var(--t-dim))`,
+                        border: `1px solid rgba(255,255,255,0.1)`,
+                      }}
+                    >
+                      VS
+                    </span>
+                  </div>
+                )}
                 <div
-                  className="font-mono text-lg font-bold tracking-wider"
-                  style={{ color: `rgb(var(--t-text))` }}
+                  className="text-lg font-bold tracking-tight"
+                  style={{
+                    color: `rgb(var(--t-text))`,
+                    fontFamily: `'Clash Display', var(--font-mono), ui-monospace, monospace`,
+                  }}
                 >
                   {c.ticker}
                 </div>
@@ -378,10 +405,11 @@ function ComparisonTable({
                 <tr key={`s-${section}`}>
                   <td
                     colSpan={colCount + 1}
-                    className="border-b border-t px-5 py-2"
+                    className="px-5 py-2"
                     style={{
-                      borderColor: `rgb(var(--t-border) / 0.4)`,
-                      backgroundColor: `rgb(var(--t-accent) / 0.04)`,
+                      borderTop: `1px solid rgba(255,255,255,0.05)`,
+                      borderBottom: `1px solid rgba(255,255,255,0.05)`,
+                      backgroundColor: `rgba(212,175,55,0.04)`,
                     }}
                   >
                     <span
@@ -395,18 +423,14 @@ function ComparisonTable({
 
                 {sectionRows.map((row, ri) => {
                   const bestIdx = loading ? -1 : getBestIndex(companies, row);
-                  const isLast = ri === sectionRows.length - 1;
                   return (
-                    <tr
-                      key={row.label}
-                      className={isLast ? "" : ""}
-                      style={{ backgroundColor: `rgb(var(--t-surface))` }}
-                    >
+                    <tr key={row.label}>
                       {/* Row label */}
                       <td
-                        className="border-b border-r px-5 py-3.5 text-xs font-medium"
+                        className="px-5 py-3.5 text-xs font-medium"
                         style={{
-                          borderColor: `rgb(var(--t-border) / 0.4)`,
+                          borderBottom: `1px solid rgba(255,255,255,0.04)`,
+                          borderRight: `1px solid rgba(255,255,255,0.06)`,
                           color: `rgb(var(--t-muted))`,
                         }}
                       >
@@ -431,14 +455,12 @@ function ComparisonTable({
                         return (
                           <td
                             key={c.ticker}
-                            className="border-b px-5 py-3.5 text-sm"
+                            className="px-5 py-3.5 text-sm"
                             style={{
-                              borderColor: `rgb(var(--t-border) / 0.4)`,
-                              borderRight: ci < colCount - 1 ? `1px solid rgb(var(--t-border) / 0.2)` : undefined,
-                              borderLeft: isWinner ? `2px solid rgb(var(--t-accent) / 0.7)` : undefined,
-                              backgroundColor: isWinner
-                                ? `rgb(var(--t-accent) / 0.04)`
-                                : undefined,
+                              borderBottom: `1px solid rgba(255,255,255,0.04)`,
+                              borderRight: ci < colCount - 1 ? `1px solid rgba(255,255,255,0.04)` : undefined,
+                              borderLeft: isWinner ? `2px solid rgb(var(--t-accent) / 0.6)` : undefined,
+                              backgroundColor: isWinner ? `rgba(212,175,55,0.05)` : undefined,
                               color: `rgb(var(--t-text))`,
                             }}
                           >
@@ -565,10 +587,13 @@ export function CompareClient() {
     <div className="space-y-6">
       {/* Ticker selector row */}
       <div
-        className="rounded-2xl border p-5"
+        className="rounded-3xl border p-5"
         style={{
-          borderColor: `rgb(var(--t-border) / 0.7)`,
-          backgroundColor: `rgb(var(--t-card))`,
+          borderColor: `rgba(255,255,255,0.08)`,
+          backgroundColor: `var(--card-bg, rgb(var(--t-card)))`,
+          backdropFilter: `var(--card-blur, none)`,
+          WebkitBackdropFilter: `var(--card-blur, none)`,
+          boxShadow: `var(--card-shadow, none)`,
         }}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -659,10 +684,12 @@ export function CompareClient() {
       {/* AI summary */}
       {summary && !loading && (
         <div
-          className="rounded-2xl border px-6 py-5"
+          className="rounded-3xl border px-6 py-5"
           style={{
-            borderColor: `rgb(var(--t-accent) / 0.2)`,
-            backgroundColor: `rgb(var(--t-accent) / 0.04)`,
+            borderColor: `rgba(212,175,55,0.2)`,
+            backgroundColor: `rgba(212,175,55,0.04)`,
+            backdropFilter: `var(--card-blur, none)`,
+            WebkitBackdropFilter: `var(--card-blur, none)`,
           }}
           data-testid="ai-summary"
         >

@@ -34,14 +34,24 @@ export default async function DashboardPage() {
         <main className="mx-auto max-w-6xl px-4 py-10">
 
           {/* Header */}
-          <div className="mb-8">
-            <div className="label mb-2">Intelligence Hub</div>
+          <div className="mb-10">
+            <p className="label mb-2">Intelligence Hub</p>
             <h1
               className="text-3xl font-bold tracking-tight"
-              style={{ color: `rgb(var(--t-text))` }}
+              style={{
+                fontFamily: "'Clash Display', var(--font-sans), sans-serif",
+                color: `rgb(var(--t-text))`,
+              }}
             >
               Welcome back,{" "}
-              <span style={{ color: `rgb(var(--t-accent))` }}>{firstName}</span>
+              <span
+                style={{
+                  color: `rgb(var(--t-accent))`,
+                  textShadow: `0 0 32px rgb(var(--t-accent) / 0.4)`,
+                }}
+              >
+                {firstName}
+              </span>
             </h1>
             <p className="mt-1.5 text-sm" style={{ color: `rgb(var(--t-muted))` }}>
               AI research with every claim cited. Enter a ticker to begin.
@@ -53,10 +63,13 @@ export default async function DashboardPage() {
 
             {/* Left — Research panel */}
             <div
-              className="rounded-2xl border p-6"
+              className="rounded-3xl border p-6"
               style={{
-                borderColor: `rgb(var(--t-border) / 0.7)`,
-                backgroundColor: `rgb(var(--t-surface))`,
+                borderColor: `rgba(255,255,255,0.08)`,
+                backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
+                backdropFilter: `var(--card-blur, none)`,
+                WebkitBackdropFilter: `var(--card-blur, none)`,
+                boxShadow: `var(--card-shadow, none)`,
               }}
             >
               <div className="label mb-5">New Research</div>
@@ -65,15 +78,16 @@ export default async function DashboardPage() {
               {/* Data sources footer */}
               <div
                 className="mt-6 flex flex-wrap gap-2 border-t pt-4"
-                style={{ borderColor: `rgb(var(--t-border) / 0.5)` }}
+                style={{ borderColor: `rgba(255,255,255,0.06)` }}
               >
                 {["Finnhub", "Twelve Data", "SEC EDGAR", "Gemini AI", "Senate eFD"].map((s) => (
                   <span
                     key={s}
                     className="rounded-full border px-2.5 py-1 text-[10px] font-medium"
                     style={{
-                      borderColor: `rgb(var(--t-border) / 0.7)`,
+                      borderColor: `rgba(255,255,255,0.08)`,
                       color: `rgb(var(--t-dim))`,
+                      backgroundColor: `rgba(255,255,255,0.03)`,
                     }}
                   >
                     {s}
@@ -87,10 +101,13 @@ export default async function DashboardPage() {
 
               {/* Recent reports */}
               <div
-                className="rounded-2xl border p-4"
+                className="rounded-3xl border p-4"
                 style={{
-                  borderColor: `rgb(var(--t-border) / 0.7)`,
-                  backgroundColor: `rgb(var(--t-surface))`,
+                  borderColor: `rgba(255,255,255,0.08)`,
+                  backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
+                  backdropFilter: `var(--card-blur, none)`,
+                  WebkitBackdropFilter: `var(--card-blur, none)`,
+                  boxShadow: `var(--card-shadow, none)`,
                 }}
               >
                 <div className="label mb-3">Recent Reports</div>
@@ -99,16 +116,19 @@ export default async function DashboardPage() {
                     recent.map((r) => (
                       <Link key={r.id} href={`/report/${r.id}`}>
                         <div
-                          className="hover-row flex items-center justify-between rounded-xl border px-3 py-2.5"
+                          className="hover-row flex items-center justify-between rounded-xl border px-3 py-2.5 transition-colors"
                           style={{
-                            borderColor: `rgb(var(--t-border) / 0.6)`,
-                            backgroundColor: `rgb(var(--t-card))`,
+                            borderColor: `rgba(255,255,255,0.06)`,
+                            backgroundColor: `rgba(255,255,255,0.02)`,
                           }}
                         >
                           <div>
                             <span
                               className="font-mono text-sm font-semibold"
-                              style={{ color: `rgb(var(--t-text))` }}
+                              style={{
+                                color: `rgb(var(--t-text))`,
+                                fontFamily: `var(--font-mono), ui-monospace, monospace`,
+                              }}
                             >
                               {r.ticker}
                             </span>
@@ -123,8 +143,9 @@ export default async function DashboardPage() {
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span
-                              className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold font-mono"
+                              className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
                               style={{
+                                fontFamily: `var(--font-mono), ui-monospace, monospace`,
                                 backgroundColor: `rgb(var(--t-accent) / 0.1)`,
                                 color: `rgb(var(--t-accent))`,
                               }}
@@ -139,7 +160,7 @@ export default async function DashboardPage() {
                   ) : (
                     <div
                       className="rounded-xl border border-dashed p-5 text-center"
-                      style={{ borderColor: `rgb(var(--t-border) / 0.5)` }}
+                      style={{ borderColor: `rgba(255,255,255,0.06)` }}
                     >
                       <p className="text-sm" style={{ color: `rgb(var(--t-muted))` }}>No reports yet</p>
                       <p className="text-xs mt-1" style={{ color: `rgb(var(--t-dim))` }}>Run your first analysis →</p>
@@ -151,10 +172,13 @@ export default async function DashboardPage() {
               {/* Watchlist */}
               {initialWatchlist.length > 0 && (
                 <div
-                  className="rounded-2xl border p-4"
+                  className="rounded-3xl border p-4"
                   style={{
-                    borderColor: `rgb(var(--t-border) / 0.7)`,
-                    backgroundColor: `rgb(var(--t-surface))`,
+                    borderColor: `rgba(255,255,255,0.08)`,
+                    backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
+                    backdropFilter: `var(--card-blur, none)`,
+                    WebkitBackdropFilter: `var(--card-blur, none)`,
+                    boxShadow: `var(--card-shadow, none)`,
                   }}
                 >
                   <div className="label mb-3">Watchlist</div>
@@ -163,10 +187,12 @@ export default async function DashboardPage() {
                       <Link
                         key={ticker}
                         href={`/dashboard?ticker=${ticker}`}
-                        className="hover-chip rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold"
+                        className="hover-chip rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold transition-colors"
                         style={{
-                          borderColor: `rgb(var(--t-border))`,
+                          fontFamily: `var(--font-mono), ui-monospace, monospace`,
+                          borderColor: `rgba(255,255,255,0.1)`,
                           color: `rgb(var(--t-muted))`,
+                          backgroundColor: `rgba(255,255,255,0.03)`,
                         }}
                       >
                         {ticker}
@@ -178,10 +204,13 @@ export default async function DashboardPage() {
 
               {/* Quick links */}
               <div
-                className="rounded-2xl border p-4"
+                className="rounded-3xl border p-4"
                 style={{
-                  borderColor: `rgb(var(--t-border) / 0.7)`,
-                  backgroundColor: `rgb(var(--t-surface))`,
+                  borderColor: `rgba(255,255,255,0.08)`,
+                  backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
+                  backdropFilter: `var(--card-blur, none)`,
+                  WebkitBackdropFilter: `var(--card-blur, none)`,
+                  boxShadow: `var(--card-shadow, none)`,
                 }}
               >
                 <div className="label mb-3">Quick Access</div>
@@ -195,10 +224,11 @@ export default async function DashboardPage() {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="hover-quick-link flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm"
+                      className="hover-quick-link flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition-colors"
                       style={{
-                        borderColor: `rgb(var(--t-border) / 0.6)`,
+                        borderColor: `rgba(255,255,255,0.07)`,
                         color: `rgb(var(--t-muted))`,
+                        backgroundColor: `rgba(255,255,255,0.02)`,
                       }}
                     >
                       <span style={{ color: `rgb(var(--t-accent))` }}>{item.icon}</span>

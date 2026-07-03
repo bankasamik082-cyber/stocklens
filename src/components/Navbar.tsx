@@ -30,10 +30,11 @@ export function Navbar({ email }: { email?: string | null }) {
     <header
       className="sticky top-0 z-20 border-b"
       style={{
-        backgroundColor: `rgb(var(--t-bg) / 0.85)`,
-        borderBottomColor: `rgb(var(--t-border) / 0.6)`,
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
+        backgroundColor: `rgb(var(--t-bg) / 0.75)`,
+        borderBottomColor: `rgba(255,255,255,0.06)`,
+        backdropFilter: "blur(28px) saturate(160%)",
+        WebkitBackdropFilter: "blur(28px) saturate(160%)",
+        boxShadow: "0 1px 0 rgba(255,255,255,0.05)",
       }}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 h-14">
@@ -42,19 +43,24 @@ export function Navbar({ email }: { email?: string | null }) {
           href={email ? "/dashboard" : "/"}
           className="flex items-center gap-2.5 group shrink-0"
         >
-          <div className="relative grid h-7 w-7 place-items-center rounded-lg overflow-hidden">
-            <div
-              className="absolute inset-0"
-              style={{ background: `linear-gradient(135deg, rgb(var(--t-accent)), rgb(var(--t-accent) / 0.6))` }}
-            />
+          <div
+            className="relative grid h-7 w-7 place-items-center rounded-lg overflow-hidden"
+            style={{
+              background: `linear-gradient(135deg, rgb(var(--t-accent)), rgb(var(--t-accent) / 0.65))`,
+              boxShadow: `0 0 16px rgb(var(--t-accent) / 0.3)`,
+            }}
+          >
             <span
-              className="relative z-10 text-xs font-bold tracking-tight"
-              style={{ color: `rgb(var(--t-bg))` }}
+              className="relative z-10 text-[11px] font-bold tracking-tight"
+              style={{ color: `rgb(var(--t-bg))`, fontFamily: "'Clash Display', sans-serif" }}
             >
               SL
             </span>
           </div>
-          <span className="text-base font-semibold tracking-tight" style={{ color: `rgb(var(--t-text))` }}>
+          <span
+            className="text-base font-semibold tracking-tight"
+            style={{ color: `rgb(var(--t-text))`, fontFamily: "'Clash Display', sans-serif" }}
+          >
             Stock<span style={{ color: `rgb(var(--t-accent))` }}>Lens</span>
           </span>
         </Link>
@@ -100,7 +106,7 @@ export function Navbar({ email }: { email?: string | null }) {
             {/* Separator */}
             <div
               className="hidden lg:block w-px h-4 mx-3"
-              style={{ backgroundColor: `rgb(var(--t-border))` }}
+              style={{ backgroundColor: `rgba(255,255,255,0.1)` }}
             />
 
             {/* Cmd+K hint */}
@@ -111,8 +117,9 @@ export function Navbar({ email }: { email?: string | null }) {
               }}
               className="hidden lg:flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-mono transition"
               style={{
-                borderColor: `rgb(var(--t-border))`,
+                borderColor: `rgba(255,255,255,0.1)`,
                 color: `rgb(var(--t-dim))`,
+                backgroundColor: `rgba(255,255,255,0.03)`,
               }}
               title="Open command palette"
             >
@@ -134,8 +141,9 @@ export function Navbar({ email }: { email?: string | null }) {
               onClick={signOut}
               className="ml-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition"
               style={{
-                borderColor: `rgb(var(--t-border))`,
+                borderColor: `rgba(255,255,255,0.1)`,
                 color: `rgb(var(--t-muted))`,
+                backgroundColor: `rgba(255,255,255,0.03)`,
               }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLElement).style.color = `rgb(var(--t-text))`;
@@ -143,17 +151,14 @@ export function Navbar({ email }: { email?: string | null }) {
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLElement).style.color = `rgb(var(--t-muted))`;
-                (e.currentTarget as HTMLElement).style.borderColor = `rgb(var(--t-border))`;
+                (e.currentTarget as HTMLElement).style.borderColor = `rgba(255,255,255,0.1)`;
               }}
             >
               Sign out
             </button>
           </div>
         ) : (
-          <Link
-            href="/login"
-            className="btn-accent text-sm"
-          >
+          <Link href="/login" className="btn-accent text-sm">
             Sign in
           </Link>
         )}

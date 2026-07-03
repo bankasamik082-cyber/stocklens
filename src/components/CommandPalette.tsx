@@ -31,7 +31,7 @@ const NAV_ITEMS = [
 
 export function CommandPalette() {
   const router = useRouter();
-  const { setTheme, theme } = useTheme();
+  const { setTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [tickers, setTickers] = useState<SearchResult[]>([]);
@@ -40,7 +40,6 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Open/close via Cmd+K / Ctrl+K
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -53,7 +52,6 @@ export function CommandPalette() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Focus input when opening
   useEffect(() => {
     if (open) {
       setQuery("");
@@ -63,7 +61,6 @@ export function CommandPalette() {
     }
   }, [open]);
 
-  // Ticker search
   const searchTickers = useCallback(async (q: string) => {
     if (q.length < 1) { setTickers([]); return; }
     setTickerLoading(true);
@@ -84,11 +81,9 @@ export function CommandPalette() {
     debounceRef.current = setTimeout(() => searchTickers(val.trim()), 250);
   }
 
-  // Build item list
   const items: Item[] = [];
 
   if (!query) {
-    // Navigation
     NAV_ITEMS.forEach((n) =>
       items.push({
         id: `nav-${n.href}`,
@@ -98,7 +93,6 @@ export function CommandPalette() {
         action: () => { router.push(n.href); setOpen(false); },
       })
     );
-    // Theme switching
     THEMES.forEach((t) =>
       items.push({
         id: `theme-${t.id}`,
@@ -110,7 +104,6 @@ export function CommandPalette() {
       })
     );
   } else {
-    // Filter nav
     NAV_ITEMS.filter((n) => n.label.toLowerCase().includes(query.toLowerCase())).forEach((n) =>
       items.push({
         id: `nav-${n.href}`,
@@ -120,7 +113,6 @@ export function CommandPalette() {
         action: () => { router.push(n.href); setOpen(false); },
       })
     );
-    // Ticker results
     tickers.forEach((t) =>
       items.push({
         id: `ticker-${t.symbol}`,
@@ -134,7 +126,6 @@ export function CommandPalette() {
         },
       })
     );
-    // Action: run report
     if (query.length >= 1 && query.match(/^[A-Z.]{1,6}$/i)) {
       items.push({
         id: "action-report",
@@ -150,7 +141,6 @@ export function CommandPalette() {
     }
   }
 
-  // Keyboard navigation
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -163,20 +153,14 @@ export function CommandPalette() {
     }
   }
 
-  const typeColor: Record<Item["type"], string> = {
-    nav:    "text-t-accent",
-    ticker: "text-t-muted",
-    theme:  "text-t-muted",
-    action: "text-t-accent",
-  };
-
   return (
     <AnimatePresence>
       {open && (
         <>
           {/* Backdrop */}
           <motion.div
-            className="fixed inset-0 z-50 bg-t-bg/60 backdrop-blur-md"
+            className="fixed inset-0 z-50"
+            style={{ backgroundColor: "rgba(5,7,15,0.75)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -185,37 +169,55 @@ export function CommandPalette() {
           />
 
           {/* Panel */}
-          <div className="fixed inset-0 z-50 flex items-start justify-center pt-[18vh] px-4 pointer-events-none">
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-[16vh] px-4 pointer-events-none">
             <motion.div
-              className="w-full max-w-xl pointer-events-auto overflow-hidden rounded-2xl card shadow-2xl"
-              initial={{ opacity: 0, y: -12, scale: 0.97 }}
+              className="w-full max-w-xl pointer-events-auto overflow-hidden shadow-2xl"
+              style={{
+                borderRadius: "1.5rem",
+                border: "1px solid rgba(255,255,255,0.1)",
+                backgroundColor: "rgba(10,13,26,0.92)",
+                backdropFilter: "blur(32px) saturate(180%)",
+                WebkitBackdropFilter: "blur(32px) saturate(180%)",
+                boxShadow: "0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)",
+              }}
+              initial={{ opacity: 0, y: -16, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.97 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
             >
               {/* Input */}
-              <div className="flex items-center gap-3 px-4 py-3.5 border-b border-t-border/50">
-                <span className="text-t-muted text-base shrink-0">⌘</span>
+              <div
+                className="flex items-center gap-3 px-5 py-4"
+                style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+              >
+                <span className="text-lg shrink-0" style={{ color: `rgb(var(--t-accent))` }}>⌘</span>
                 <input
                   ref={inputRef}
                   value={query}
                   onChange={(e) => onQueryChange(e.target.value.toUpperCase())}
                   onKeyDown={onKeyDown}
                   placeholder="Search companies, navigate, switch theme…"
-                  className="flex-1 bg-transparent text-sm text-t-text placeholder-t-dim outline-none"
+                  className="flex-1 bg-transparent text-sm outline-none"
+                  style={{ color: `rgb(var(--t-text))` }}
                 />
                 {tickerLoading && (
-                  <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-t-border border-t-accent" />
+                  <span
+                    className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2"
+                    style={{ borderColor: `rgba(255,255,255,0.15)`, borderTopColor: `rgb(var(--t-accent))` }}
+                  />
                 )}
-                <kbd className="shrink-0 rounded border border-t-border px-1.5 py-0.5 text-[10px] text-t-dim font-mono">
+                <kbd
+                  className="shrink-0 rounded-lg border px-2 py-1 text-[10px] font-mono"
+                  style={{ borderColor: "rgba(255,255,255,0.1)", color: `rgb(var(--t-dim))`, backgroundColor: "rgba(255,255,255,0.04)" }}
+                >
                   ESC
                 </kbd>
               </div>
 
               {/* Results */}
-              <div className="max-h-80 overflow-y-auto py-1.5">
+              <div className="max-h-80 overflow-y-auto py-2">
                 {items.length === 0 ? (
-                  <div className="py-10 text-center text-sm text-t-dim">
+                  <div className="py-10 text-center text-sm" style={{ color: `rgb(var(--t-dim))` }}>
                     No results
                   </div>
                 ) : (
@@ -224,27 +226,25 @@ export function CommandPalette() {
                       key={item.id}
                       onClick={item.action}
                       onMouseEnter={() => setActiveIndex(i)}
-                      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition ${
-                        i === activeIndex
-                          ? "bg-t-accent/8"
-                          : "hover:bg-t-accent/5"
-                      }`}
+                      className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors"
                       style={{
-                        backgroundColor:
-                          i === activeIndex ? `rgb(var(--t-accent) / 0.08)` : undefined,
+                        backgroundColor: i === activeIndex ? `rgba(212,175,55,0.08)` : "transparent",
                       }}
                     >
-                      <span className={`shrink-0 text-base ${typeColor[item.type]}`} style={{ color: `rgb(var(--t-accent))` }}>
+                      <span className="shrink-0 text-base w-5 text-center" style={{ color: `rgb(var(--t-accent))` }}>
                         {item.icon}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-t-text truncate">{item.label}</div>
+                        <div className="text-sm font-medium" style={{ color: `rgb(var(--t-text))` }}>{item.label}</div>
                         {item.sublabel && (
-                          <div className="text-[11px] text-t-muted truncate">{item.sublabel}</div>
+                          <div className="text-[11px] truncate" style={{ color: `rgb(var(--t-muted))` }}>{item.sublabel}</div>
                         )}
                       </div>
                       {i === activeIndex && (
-                        <kbd className="shrink-0 rounded border border-t-border px-1.5 py-0.5 text-[10px] text-t-dim font-mono">
+                        <kbd
+                          className="shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-mono"
+                          style={{ borderColor: "rgba(255,255,255,0.1)", color: `rgb(var(--t-dim))` }}
+                        >
                           ↵
                         </kbd>
                       )}
@@ -253,16 +253,20 @@ export function CommandPalette() {
                 )}
               </div>
 
-              {/* Footer hint */}
-              <div className="border-t border-t-border/50 px-4 py-2 flex items-center gap-4">
-                {[
-                  ["↑↓", "navigate"],
-                  ["↵", "select"],
-                  ["esc", "close"],
-                ].map(([key, hint]) => (
+              {/* Footer */}
+              <div
+                className="px-5 py-3 flex items-center gap-5"
+                style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
+              >
+                {[["↑↓", "navigate"], ["↵", "select"], ["esc", "close"]].map(([key, hint]) => (
                   <span key={key} className="flex items-center gap-1.5">
-                    <kbd className="rounded border border-t-border px-1.5 py-0.5 text-[10px] font-mono text-t-dim">{key}</kbd>
-                    <span className="text-[10px] text-t-dim">{hint}</span>
+                    <kbd
+                      className="rounded border px-1.5 py-0.5 text-[10px] font-mono"
+                      style={{ borderColor: "rgba(255,255,255,0.1)", color: `rgb(var(--t-dim))` }}
+                    >
+                      {key}
+                    </kbd>
+                    <span className="text-[10px]" style={{ color: `rgb(var(--t-dim))` }}>{hint}</span>
                   </span>
                 ))}
               </div>

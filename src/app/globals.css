@@ -38,7 +38,9 @@
     radial-gradient(ellipse 70rem  50rem at -15% 20%, rgba(79,112,240,0.06), transparent 55%),
     radial-gradient(ellipse 90rem  60rem at 50% 110%, rgba(14,30,59,0.5),    transparent 60%);
 
-  /* Scrollbar */
+  --card-bg: rgb(14, 30, 59);
+  --card-blur: 0;
+  --card-shadow: none;
   --scrollbar-thumb: #1a2f57;
 }
 
@@ -65,33 +67,45 @@
     radial-gradient(ellipse 80rem 50rem at 80% -10%, rgba(196,160,80,0.08), transparent 55%),
     radial-gradient(ellipse 60rem 40rem at -10% 30%, rgba(196,160,80,0.04), transparent 55%);
 
+  --card-bg: rgb(255, 255, 255);
+  --card-blur: 0;
+  --card-shadow: 0 2px 12px rgba(0,0,0,0.06);
   --scrollbar-thumb: #d6cfc4;
 }
 
 [data-theme="midnight-gold"] {
   color-scheme: dark;
 
-  --t-bg:      9   9   15;   /* #09090F */
-  --t-surface: 15  15  26;   /* #0F0F1A */
-  --t-card:    20  20  32;   /* #141420 */
+  /* Backgrounds — deep, matching design's #05070F */
+  --t-bg:      5   7   15;    /* #05070F */
+  --t-surface: 10  13  26;    /* #0A0D1A */
+  --t-card:    16  20  40;    /* #101428 — slightly lighter than bg for contrast */
 
-  --t-border:  32  32  52;   /* #202034 */
+  /* Borders — visible but subtle */
+  --t-border:  38  44  72;    /* #262C48 */
 
-  --t-accent:  212 175 55;   /* #D4AF37 — gold */
+  /* Accent — gold */
+  --t-accent:  212 175 55;    /* #D4AF37 */
 
-  --t-text:    240 235 224;  /* #F0EBE0 */
-  --t-muted:   148 138 152;  /* #948A98 */
-  --t-dim:     72  66  82;   /* #484252 */
+  /* Typography */
+  --t-text:    248 249 252;   /* near-white, cool */
+  --t-muted:   148 155 175;   /* cool-gray */
+  --t-dim:     72  78  98;    /* dim cool-gray */
 
-  --t-success: 52  211 153;
-  --t-danger:  248 113 113;
-  --t-warn:    251 191 36;
+  /* Status */
+  --t-success: 16  185 129;   /* #10B981 */
+  --t-danger:  244 63  94;    /* #F43F5E */
+  --t-warn:    251 191 36;    /* amber */
 
-  --body-grad:
-    radial-gradient(ellipse 100rem 60rem at 80% -10%, rgba(212,175,55,0.06), transparent 55%),
-    radial-gradient(ellipse 60rem  40rem at -10% 20%, rgba(212,175,55,0.03), transparent 55%);
+  /* Body gradient matching design */
+  --body-grad: radial-gradient(120% 70% at 50% -10%, #141C38 0%, #0A0F1E 55%, #070B16 100%);
 
-  --scrollbar-thumb: #282840;
+  /* Glassmorphism card values */
+  --card-bg: rgba(255, 255, 255, 0.05);
+  --card-blur: blur(24px) saturate(140%);
+  --card-shadow: 0 12px 32px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.07);
+
+  --scrollbar-thumb: #1a1f40;
 }
 
 /* ── Base styles ──────────────────────────────────────────────────────────── */
@@ -109,6 +123,19 @@ body {
   font-family:         var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Noise texture overlay — adds film-grain depth */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 250px 250px;
 }
 
 /* Scrollbar */
@@ -160,18 +187,24 @@ body {
     @apply bg-gradient-to-r from-brand-300 via-brand-400 to-indigo-300 bg-clip-text text-transparent;
   }
 
-  /* Card base */
+  /* Card base — glassmorphism in midnight-gold, solid in others */
   .card {
-    background-color: rgb(var(--t-card));
-    border: 1px solid rgb(var(--t-border) / 0.8);
-    border-radius: 1rem;
+    background-color: var(--card-bg, rgb(var(--t-card)));
+    border: 1px solid rgb(var(--t-border) / 0.75);
+    border-radius: 1.25rem;
+    backdrop-filter: var(--card-blur, none);
+    -webkit-backdrop-filter: var(--card-blur, none);
+    box-shadow: var(--card-shadow, none);
   }
 
   /* Surface panel */
   .surface {
-    background-color: rgb(var(--t-surface));
+    background-color: var(--card-bg, rgb(var(--t-surface)));
     border: 1px solid rgb(var(--t-border) / 0.6);
-    border-radius: 1rem;
+    border-radius: 1.25rem;
+    backdrop-filter: var(--card-blur, none);
+    -webkit-backdrop-filter: var(--card-blur, none);
+    box-shadow: var(--card-shadow, none);
   }
 
   /* Skeleton shimmer */
@@ -278,9 +311,22 @@ body {
     border-top: 1px solid rgb(var(--t-border) / 0.6);
   }
 
+  /* Section number badge — gold monospace */
+  .section-num {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: rgb(var(--t-accent));
+    background: rgb(var(--t-accent) / 0.1);
+    border: 1px solid rgb(var(--t-accent) / 0.2);
+    border-radius: 0.5rem;
+    padding: 0.2rem 0.45rem;
+    line-height: 1;
+    letter-spacing: 0.05em;
+  }
+
   /* ── CSS-only hover helpers (safe to use in Server Components) ─────────── */
 
-  /* Card hover: accent border + very faint accent bg */
   .hover-card {
     transition: border-color 0.15s ease, background-color 0.15s ease;
   }
@@ -289,7 +335,6 @@ body {
     background-color: rgb(var(--t-accent) / 0.04);
   }
 
-  /* Row hover: accent border only */
   .hover-row {
     transition: border-color 0.15s ease;
   }
@@ -297,7 +342,6 @@ body {
     border-color: rgb(var(--t-accent) / 0.3);
   }
 
-  /* Text link hover: text turns accent */
   .hover-accent-text {
     transition: color 0.15s ease;
   }
@@ -305,7 +349,6 @@ body {
     color: rgb(var(--t-accent));
   }
 
-  /* Chip hover: accent color + border */
   .hover-chip {
     transition: color 0.15s ease, border-color 0.15s ease;
   }
@@ -314,7 +357,6 @@ body {
     border-color: rgb(var(--t-accent) / 0.4);
   }
 
-  /* Quick-link hover: text, border, and bg */
   .hover-quick-link {
     transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
   }

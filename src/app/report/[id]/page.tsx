@@ -66,22 +66,29 @@ export default async function ReportPage({
 
           {/* Report header — Company Hero */}
           <div
-            className="mb-8 rounded-2xl border px-6 py-5 backdrop-blur-sm"
+            className="mb-8 rounded-3xl border px-6 py-6"
             style={{
-              borderColor: `rgb(var(--t-border) / 0.7)`,
-              backgroundColor: `rgb(var(--t-surface))`,
+              borderColor: `rgba(255,255,255,0.08)`,
+              backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
+              backdropFilter: `var(--card-blur, none)`,
+              WebkitBackdropFilter: `var(--card-blur, none)`,
+              boxShadow: `var(--card-shadow, none)`,
             }}
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="label mb-2">Research Report</div>
+                <div className="label mb-3">Research Report</div>
                 <h1
-                  className="font-mono text-4xl font-bold tracking-wider"
-                  style={{ color: `rgb(var(--t-text))` }}
+                  className="text-4xl font-bold tracking-tight"
+                  style={{
+                    color: `rgb(var(--t-text))`,
+                    fontFamily: `'Clash Display', var(--font-mono), ui-monospace, monospace`,
+                    textShadow: `0 0 48px rgb(var(--t-accent) / 0.15)`,
+                  }}
                 >
                   {analysis.ticker}
                 </h1>
-                <p className="mt-1.5 text-sm" style={{ color: `rgb(var(--t-dim))` }}>
+                <p className="mt-2 text-sm" style={{ color: `rgb(var(--t-dim))` }}>
                   AI research report · not financial advice
                 </p>
               </div>
@@ -94,10 +101,10 @@ export default async function ReportPage({
           <ChatButton ticker={analysis.ticker} />
 
           <div
-            className="mt-8 rounded-xl border px-5 py-4 text-xs leading-relaxed"
+            className="mt-8 rounded-2xl border px-5 py-4 text-xs leading-relaxed"
             style={{
-              borderColor: `rgb(var(--t-border) / 0.5)`,
-              backgroundColor: `rgb(var(--t-card))`,
+              borderColor: `rgba(255,255,255,0.06)`,
+              backgroundColor: `rgba(255,255,255,0.02)`,
               color: `rgb(var(--t-dim))`,
             }}
           >

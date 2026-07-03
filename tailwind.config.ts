@@ -33,8 +33,6 @@ const config: Config = {
         },
 
         // ── Semantic / theme-aware color tokens ─────────────────────────────
-        // These resolve to CSS custom properties set per-theme in globals.css.
-        // Supports opacity modifier syntax: bg-t-bg/50, text-t-accent/80, etc.
         t: {
           bg:      "rgb(var(--t-bg)      / <alpha-value>)",
           surface: "rgb(var(--t-surface) / <alpha-value>)",
@@ -51,9 +49,10 @@ const config: Config = {
       },
 
       fontFamily: {
-        sans:  ["var(--font-sans)", "system-ui", "sans-serif"],
-        serif: ["var(--font-serif)", "Georgia", "serif"],
-        mono:  ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+        sans:    ["var(--font-sans)", "system-ui", "sans-serif"],
+        serif:   ["Georgia", "serif"],
+        mono:    ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+        display: ["'Clash Display'", "var(--font-sans)", "system-ui", "sans-serif"],
       },
 
       boxShadow: {
@@ -63,10 +62,17 @@ const config: Config = {
         "card-hover": "0 8px 32px -6px rgba(0,0,0,0.6), 0 1px 4px rgba(0,0,0,0.4)",
         "t-glow":     "0 0 24px -4px rgb(var(--t-accent) / 0.35)",
         "t-card":     "0 4px 24px -4px rgb(var(--t-bg) / 0.8), 0 1px 4px rgb(var(--t-bg) / 0.5)",
+        "glass":      "0 12px 32px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.07)",
       },
 
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+      },
+
+      borderRadius: {
+        "2xl": "1rem",
+        "3xl": "1.25rem",
+        "4xl": "1.5rem",
       },
 
       animation: {

@@ -59,7 +59,21 @@
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); vals=d.get\\('values',[]\\); print\\('count:', len\\(vals\\)\\); [print\\(v['datetime'], v['close']\\) for v in vals]\")",
       "Bash(python3 *)",
       "Bash(xxd)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(lsof -ti:3000)",
+      "Bash(curl *)",
+      "Bash(xargs ps -p)",
+      "Bash(lsof -ti:3001)",
+      "Bash(lsof -ti:3002)",
+      "Bash(npx tsc *)",
+      "Bash(PORT=3003 npm run dev)",
+      "Bash(echo \"Server PID: $!\")",
+      "Bash(dig +short efts.senate.gov)",
+      "Bash(nslookup efts.senate.gov 8.8.8.8)",
+      "Bash(echo \"Dev server started in background, PID=$!\")",
+      "Skill(claude-in-chrome)",
+      "Bash(vercel --version)",
+      "Bash(vercel ls *)"
     ]
   }
 }

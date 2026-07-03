@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { Source_Serif_4 } from "next/font/google";
+import { Inter, DM_Mono } from "next/font/google";
 import { ClientProviders } from "@/components/ClientProviders";
 import "./globals.css";
 
@@ -10,10 +9,10 @@ const inter = Inter({
   display: "swap",
 });
 
-const sourceSerif = Source_Serif_4({
+const dmMono = DM_Mono({
   subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-serif",
+  weight: ["400", "500"],
+  variable: "--font-mono",
   display: "swap",
 });
 
@@ -27,9 +26,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${sourceSerif.variable}`}
+      className={`${inter.variable} ${dmMono.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <link rel="preconnect" href="https://api.fontshare.com" />
+        <link
+          rel="stylesheet"
+          href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&display=swap"
+        />
+      </head>
       <body>
         <ClientProviders>{children}</ClientProviders>
       </body>

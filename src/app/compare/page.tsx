@@ -6,9 +6,7 @@ import { CompareClient } from "./CompareClient";
 
 export default async function ComparePage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   return (
@@ -20,7 +18,10 @@ export default async function ComparePage() {
             <div className="label mb-2">Research Tool</div>
             <h1
               className="text-3xl font-bold tracking-tight"
-              style={{ color: `rgb(var(--t-text))` }}
+              style={{
+                color: `rgb(var(--t-text))`,
+                fontFamily: `'Clash Display', var(--font-sans), sans-serif`,
+              }}
             >
               Compare Companies
             </h1>

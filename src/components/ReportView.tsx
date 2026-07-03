@@ -73,8 +73,8 @@ function Stat({ label, value, definition }: { label: string; value: string; defi
     <div
       className="rounded-xl border px-4 py-3"
       style={{
-        borderColor: `rgb(var(--t-border) / 0.6)`,
-        backgroundColor: `rgb(var(--t-card))`,
+        borderColor: `rgba(255,255,255,0.07)`,
+        backgroundColor: `rgba(255,255,255,0.03)`,
       }}
     >
       <div
@@ -85,8 +85,11 @@ function Stat({ label, value, definition }: { label: string; value: string; defi
         {def && <InfoTooltip text={def} />}
       </div>
       <div
-        className="mt-1.5 font-mono text-base font-semibold"
-        style={{ color: `rgb(var(--t-text))` }}
+        className="mt-1.5 text-base font-semibold"
+        style={{
+          color: `rgb(var(--t-text))`,
+          fontFamily: `var(--font-mono), ui-monospace, monospace`,
+        }}
       >
         {value}
       </div>
@@ -110,28 +113,34 @@ export function ReportView({
       {shown.map((id, idx) => (
         <section
           key={id}
-          className="overflow-hidden rounded-2xl border backdrop-blur-sm"
+          className="overflow-hidden rounded-3xl border"
           style={{
-            borderColor: `rgb(var(--t-border) / 0.7)`,
-            backgroundColor: `rgb(var(--t-surface))`,
+            borderColor: `rgba(255,255,255,0.08)`,
+            backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
+            backdropFilter: `var(--card-blur, none)`,
+            WebkitBackdropFilter: `var(--card-blur, none)`,
+            boxShadow: `var(--card-shadow, none)`,
           }}
         >
           <div
-            className="flex items-center justify-between border-b px-5 py-4"
-            style={{ borderColor: `rgb(var(--t-border) / 0.5)` }}
+            className="flex items-center justify-between px-5 py-4"
+            style={{ borderBottom: `1px solid rgba(255,255,255,0.06)` }}
           >
             <div className="flex items-center gap-3">
               <span
-                className="flex h-6 w-6 items-center justify-center rounded-md font-mono text-[10px] font-bold"
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-[11px] font-bold"
                 style={{
-                  backgroundColor: `rgb(var(--t-accent) / 0.1)`,
+                  fontFamily: `var(--font-mono), ui-monospace, monospace`,
+                  backgroundColor: `rgb(var(--t-accent) / 0.12)`,
+                  border: `1px solid rgb(var(--t-accent) / 0.2)`,
                   color: `rgb(var(--t-accent))`,
+                  boxShadow: `0 0 12px rgb(var(--t-accent) / 0.15)`,
                 }}
               >
                 {String(idx + 1).padStart(2, "0")}
               </span>
               <h3
-                className="text-xs font-semibold uppercase tracking-widest"
+                className="text-[11px] font-semibold uppercase tracking-widest"
                 style={{ color: `rgb(var(--t-muted))` }}
               >
                 {SECTION_LABELS[id]}
@@ -148,10 +157,13 @@ export function ReportView({
 
       {report.peers && report.peers.length > 0 && (
         <div
-          className="rounded-2xl border px-5 py-4"
+          className="rounded-3xl border px-5 py-4"
           style={{
-            borderColor: `rgb(var(--t-border) / 0.7)`,
-            backgroundColor: `rgb(var(--t-surface))`,
+            borderColor: `rgba(255,255,255,0.08)`,
+            backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
+            backdropFilter: `var(--card-blur, none)`,
+            WebkitBackdropFilter: `var(--card-blur, none)`,
+            boxShadow: `var(--card-shadow, none)`,
           }}
         >
           <p

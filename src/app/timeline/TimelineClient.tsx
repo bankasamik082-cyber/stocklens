@@ -468,60 +468,71 @@ function EventListItem({ event, onFocus }: { event: TimelineEvent; onFocus: (ev:
       initial={{ opacity: 0, x: -4 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.18 }}
-      className="flex items-start gap-3 border-b py-3 last:border-0"
-      style={{ borderColor: `rgb(var(--t-border) / 0.4)` }}
+      className="flex items-stretch gap-0 rounded-xl overflow-hidden mb-2"
+      style={{
+        border: `1px solid rgba(255,255,255,0.06)`,
+        backgroundColor: `rgba(255,255,255,0.02)`,
+      }}
     >
-      {/* Colour strip */}
+      {/* Left colour accent bar */}
       <div
-        className="mt-1 h-full w-0.5 shrink-0 self-stretch rounded-full"
-        style={{ backgroundColor: dotColor(event.type), minHeight: 12 }}
+        className="w-1 shrink-0 rounded-l-xl"
+        style={{ backgroundColor: dotColor(event.type) }}
       />
 
-      <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-mono" style={{ color: `rgb(var(--t-dim))` }}>
-            {new Date(event.date + "T12:00:00").toLocaleDateString("en-US", {
-              month: "short", day: "numeric", year: "numeric"
-            })}
-          </span>
-          <EventBadge type={event.type} />
-          {isEarnings && (isBeat || isMiss) && (
+      <div className="flex flex-1 items-start gap-3 px-4 py-3 min-w-0">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <span
-              className="text-[10px] font-semibold"
-              style={{ color: isBeat ? `rgb(var(--t-success))` : `rgb(var(--t-danger))` }}
+              className="text-[11px]"
+              style={{
+                color: `rgb(var(--t-dim))`,
+                fontFamily: `var(--font-mono), ui-monospace, monospace`,
+              }}
             >
-              {isBeat ? "▲ Beat" : "▼ Miss"}
+              {new Date(event.date + "T12:00:00").toLocaleDateString("en-US", {
+                month: "short", day: "numeric", year: "numeric"
+              })}
             </span>
+            <EventBadge type={event.type} />
+            {isEarnings && (isBeat || isMiss) && (
+              <span
+                className="text-[10px] font-semibold"
+                style={{ color: isBeat ? `rgb(var(--t-success))` : `rgb(var(--t-danger))` }}
+              >
+                {isBeat ? "▲ Beat" : "▼ Miss"}
+              </span>
+            )}
+          </div>
+          <p
+            className="mt-1 text-xs leading-relaxed"
+            style={{ color: `rgb(var(--t-text))` }}
+          >
+            {event.detail}
+          </p>
+          {event.link && (
+            <a
+              href={event.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-0.5 inline-block text-[10px] underline"
+              style={{ color: `rgb(var(--t-accent))` }}
+            >
+              Source ↗
+            </a>
           )}
         </div>
-        <p
-          className="mt-1 text-xs leading-relaxed"
-          style={{ color: `rgb(var(--t-text))` }}
-        >
-          {event.detail}
-        </p>
-        {event.link && (
-          <a
-            href={event.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-0.5 inline-block text-[10px] underline"
-            style={{ color: `rgb(var(--t-accent))` }}
-          >
-            Source ↗
-          </a>
-        )}
-      </div>
 
-      <button
-        type="button"
-        onClick={() => onFocus(event)}
-        className="shrink-0 rounded-lg border px-2 py-1 text-[10px] transition"
-        style={{ borderColor: `rgb(var(--t-border))`, color: `rgb(var(--t-dim))` }}
-        title="Show on chart"
-      >
-        ↑ Chart
-      </button>
+        <button
+          type="button"
+          onClick={() => onFocus(event)}
+          className="shrink-0 rounded-lg border px-2 py-1 text-[10px] transition self-start mt-0.5"
+          style={{ borderColor: `rgba(255,255,255,0.08)`, color: `rgb(var(--t-dim))`, backgroundColor: `rgba(255,255,255,0.03)` }}
+          title="Show on chart"
+        >
+          ↑ Chart
+        </button>
+      </div>
     </motion.div>
   );
 }
@@ -596,10 +607,13 @@ export function TimelineClient() {
     <div className="space-y-6">
       {/* Ticker search */}
       <div
-        className="rounded-2xl border p-5"
+        className="rounded-3xl border p-5"
         style={{
-          borderColor: `rgb(var(--t-border) / 0.7)`,
-          backgroundColor: `rgb(var(--t-card))`,
+          borderColor: `rgba(255,255,255,0.08)`,
+          backgroundColor: `var(--card-bg, rgb(var(--t-card)))`,
+          backdropFilter: `var(--card-blur, none)`,
+          WebkitBackdropFilter: `var(--card-blur, none)`,
+          boxShadow: `var(--card-shadow, none)`,
         }}
       >
         <TickerSearch onSelect={(symbol) => loadTimeline(symbol)} />
@@ -608,10 +622,10 @@ export function TimelineClient() {
       {/* Loading skeleton */}
       {loading && (
         <div
-          className="rounded-2xl border p-5 space-y-3"
+          className="rounded-3xl border p-5 space-y-3"
           style={{
-            borderColor: `rgb(var(--t-border) / 0.7)`,
-            backgroundColor: `rgb(var(--t-card))`,
+            borderColor: `rgba(255,255,255,0.08)`,
+            backgroundColor: `var(--card-bg, rgb(var(--t-card)))`,
           }}
         >
           <div className="skeleton h-5 w-32 rounded" />
@@ -638,20 +652,29 @@ export function TimelineClient() {
       {data && (
         <div
           ref={chartRef}
-          className="overflow-hidden rounded-2xl border"
+          className="overflow-hidden rounded-3xl border"
           style={{
-            borderColor: `rgb(var(--t-border) / 0.7)`,
-            backgroundColor: `rgb(var(--t-card))`,
+            borderColor: `rgba(255,255,255,0.08)`,
+            backgroundColor: `var(--card-bg, rgb(var(--t-card)))`,
+            backdropFilter: `var(--card-blur, none)`,
+            WebkitBackdropFilter: `var(--card-blur, none)`,
+            boxShadow: `var(--card-shadow, none)`,
           }}
           data-testid="timeline-chart-section"
         >
           {/* Header */}
           <div
-            className="flex items-center justify-between border-b px-5 py-4"
-            style={{ borderColor: `rgb(var(--t-border) / 0.5)` }}
+            className="flex items-center justify-between px-5 py-4"
+            style={{ borderBottom: `1px solid rgba(255,255,255,0.06)` }}
           >
             <div>
-              <span className="font-mono text-sm font-semibold" style={{ color: `rgb(var(--t-text))` }}>
+              <span
+                className="text-sm font-bold"
+                style={{
+                  color: `rgb(var(--t-text))`,
+                  fontFamily: `'Clash Display', var(--font-mono), ui-monospace, monospace`,
+                }}
+              >
                 {currentTicker}
               </span>
               <span className="ml-2 text-xs" style={{ color: `rgb(var(--t-muted))` }}>
@@ -736,29 +759,32 @@ export function TimelineClient() {
       {/* Event list */}
       {data && data.events.length > 0 && (
         <div
-          className="rounded-2xl border"
+          className="rounded-3xl border overflow-hidden"
           style={{
-            borderColor: `rgb(var(--t-border) / 0.7)`,
-            backgroundColor: `rgb(var(--t-card))`,
+            borderColor: `rgba(255,255,255,0.08)`,
+            backgroundColor: `var(--card-bg, rgb(var(--t-card)))`,
+            backdropFilter: `var(--card-blur, none)`,
+            WebkitBackdropFilter: `var(--card-blur, none)`,
+            boxShadow: `var(--card-shadow, none)`,
           }}
           data-testid="timeline-event-list"
         >
           <div
-            className="border-b px-5 py-4"
-            style={{ borderColor: `rgb(var(--t-border) / 0.5)` }}
+            className="px-5 py-4"
+            style={{ borderBottom: `1px solid rgba(255,255,255,0.06)` }}
           >
             <span className="text-xs font-semibold" style={{ color: `rgb(var(--t-muted))` }}>
               All Events — {eventsNewestFirst.length} total · most recent first
             </span>
           </div>
-          <div className="px-5">
+          <div className="px-4 py-4">
             {eventsNewestFirst.map((ev) => (
               <EventListItem key={ev.id} event={ev} onFocus={focusOnChart} />
             ))}
           </div>
           <div
-            className="border-t px-5 py-3 text-center text-[10px]"
-            style={{ borderColor: `rgb(var(--t-border) / 0.4)`, color: `rgb(var(--t-dim))` }}
+            className="px-5 py-3 text-center text-[10px]"
+            style={{ borderTop: `1px solid rgba(255,255,255,0.05)`, color: `rgb(var(--t-dim))` }}
           >
             Research only · not financial advice · sources: Finnhub, FMP, Twelve Data
           </div>
