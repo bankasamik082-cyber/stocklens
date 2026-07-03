@@ -43,7 +43,11 @@ export async function middleware(request: NextRequest) {
     path.startsWith("/earnings") ||
     path.startsWith("/settings") ||
     path.startsWith("/compare") ||
-    path.startsWith("/timeline");
+    path.startsWith("/timeline") ||
+    path.startsWith("/watchlist") ||
+    path.startsWith("/profile") ||
+    path.startsWith("/portfolio") ||
+    path.startsWith("/integrations");
 
   if (!user && isProtected) {
     const url = request.nextUrl.clone();

@@ -304,11 +304,23 @@ body[data-density="spacious"] .surface.p-4 { padding: 1.375rem; }
 .ticker-track {
   display: flex;
   width: max-content;
-  animation: ticker-scroll 60s linear infinite;
+  /* Longhand on purpose: the loop depends on every one of these.
+     No fill-mode/forwards — that would freeze the tape after one pass. */
+  animation-name: ticker-scroll;
+  animation-duration: 60s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-fill-mode: none;
+  animation-direction: normal;
   will-change: transform;
 }
 .ticker-tape:hover .ticker-track {
   animation-play-state: paused;
+}
+/* The "Fast" animation preference must not compress the 60s tape loop
+   (its global rule uses !important, so this exception must too). */
+body[data-anim="fast"] .ticker-track {
+  animation-duration: 60s !important;
 }
 .ticker-copy {
   display: flex;

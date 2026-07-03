@@ -149,3 +149,60 @@ create policy "owner can insert own brief subscription"
 drop policy if exists "owner can delete own brief subscription" on public.daily_brief_subscriptions;
 create policy "owner can delete own brief subscription"
   on public.daily_brief_subscriptions for delete using (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------
+-- 7. user_profiles  (personalization: name, investor type, avatar)
+-- ---------------------------------------------------------------------
+create table if not exists public.user_profiles (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  first_name text,
+  last_name text,
+  display_name text,
+  investor_type text,
+  investment_focus jsonb not null default '[]'::jsonb,
+  experience_level text,
+  avatar text,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.user_profiles enable row level security;
+
+drop policy if exists "owner can read own profile row" on public.user_profiles;
+create policy "owner can read own profile row"
+  on public.user_profiles for select using (auth.uid() = user_id);
+drop policy if exists "owner can insert own profile row" on public.user_profiles;
+create policy "owner can insert own profile row"
+  on public.user_profiles for insert with check (auth.uid() = user_id);
+drop policy if exists "owner can update own profile row" on public.user_profiles;
+create policy "owner can update own profile row"
+  on public.user_profiles for update using (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------
+-- 8. portfolio_holdings  (portfolio tracker positions)
+-- ---------------------------------------------------------------------
+create table if not exists public.portfolio_holdings (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  ticker text not null,
+  shares numeric not null check (shares > 0),
+  avg_cost numeric,
+  purchased_date date,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists portfolio_holdings_user_id_idx on public.portfolio_holdings (user_id);
+
+alter table public.portfolio_holdings enable row level security;
+
+drop policy if exists "owner can read holdings" on public.portfolio_holdings;
+create policy "owner can read holdings"
+  on public.portfolio_holdings for select using (auth.uid() = user_id);
+drop policy if exists "owner can insert holdings" on public.portfolio_holdings;
+create policy "owner can insert holdings"
+  on public.portfolio_holdings for insert with check (auth.uid() = user_id);
+drop policy if exists "owner can update holdings" on public.portfolio_holdings;
+create policy "owner can update holdings"
+  on public.portfolio_holdings for update using (auth.uid() = user_id);
+drop policy if exists "owner can delete holdings" on public.portfolio_holdings;
+create policy "owner can delete holdings"
+  on public.portfolio_holdings for delete using (auth.uid() = user_id);

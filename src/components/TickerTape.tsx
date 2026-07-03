@@ -40,7 +40,17 @@ export function TickerTape() {
     const load = () =>
       fetch("/api/watchlist/tape")
         .then((r) => r.json())
-        .then((d) => { if (!cancelled) setQuotes(d.quotes ?? []); })
+        .then((d) => {
+          if (cancelled) return;
+          const next = (d.quotes ?? []) as TapeQuote[];
+          // A transient error or empty refresh must never unmount a running
+          // tape, and identical data must not re-render (which could disturb
+          // the CSS animation mid-loop).
+          setQuotes((prev) => {
+            if (next.length === 0 && prev.length > 0) return prev;
+            return JSON.stringify(next) === JSON.stringify(prev) ? prev : next;
+          });
+        })
         .catch(() => {});
     load();
     // Refresh in sync with the server-side 60s cache
@@ -49,6 +59,12 @@ export function TickerTape() {
   }, []);
 
   if (quotes.length === 0) return null;
+
+  // With a short watchlist (e.g. 2 tickers) one pass of the list is far
+  // narrower than the screen, so the loop's movement is barely visible.
+  // Repeat the list until each half comfortably exceeds any viewport width.
+  const reps = Math.max(1, Math.ceil(12 / quotes.length));
+  const items = Array.from({ length: reps }, () => quotes).flat();
 
   return (
     <div
@@ -67,8 +83,8 @@ export function TickerTape() {
             width (-50%) so the loop is seamless. */}
         {[0, 1].map((copy) => (
           <div key={copy} className="ticker-copy" aria-hidden={copy === 1}>
-            {quotes.map((q) => (
-              <TapeItem key={`${copy}-${q.ticker}`} q={q} />
+            {items.map((q, i) => (
+              <TapeItem key={`${copy}-${i}-${q.ticker}`} q={q} />
             ))}
           </div>
         ))}
