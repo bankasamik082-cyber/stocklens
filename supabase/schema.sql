@@ -126,3 +126,26 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- ---------------------------------------------------------------------
+-- 6. daily_brief_subscriptions  (users who want the 8am UTC daily brief)
+-- Mirrors alert_subscriptions so the two email products stay decoupled.
+-- ---------------------------------------------------------------------
+create table if not exists public.daily_brief_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references auth.users (id) on delete cascade,
+  email text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.daily_brief_subscriptions enable row level security;
+
+drop policy if exists "owner can read own brief subscription" on public.daily_brief_subscriptions;
+create policy "owner can read own brief subscription"
+  on public.daily_brief_subscriptions for select using (auth.uid() = user_id);
+drop policy if exists "owner can insert own brief subscription" on public.daily_brief_subscriptions;
+create policy "owner can insert own brief subscription"
+  on public.daily_brief_subscriptions for insert with check (auth.uid() = user_id);
+drop policy if exists "owner can delete own brief subscription" on public.daily_brief_subscriptions;
+create policy "owner can delete own brief subscription"
+  on public.daily_brief_subscriptions for delete using (auth.uid() = user_id);

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export function AlertToggleButton({
+export function DailyBriefToggle({
   initialSubscribed,
 }: {
   initialSubscribed: boolean;
@@ -15,10 +15,9 @@ export function AlertToggleButton({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        subscribed ? "/api/alerts/unsubscribe" : "/api/alerts/subscribe",
-        { method: subscribed ? "DELETE" : "POST" }
-      );
+      const res = await fetch("/api/alerts/daily-brief", {
+        method: subscribed ? "DELETE" : "POST",
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Something went wrong.");
       setSubscribed(!subscribed);
@@ -39,6 +38,7 @@ export function AlertToggleButton({
             ? "border border-t-danger/30 bg-t-danger/10 text-t-danger hover:bg-t-danger/20"
             : "btn-accent"
         }`}
+        data-testid="daily-brief-toggle"
       >
         {loading ? (
           <>
@@ -46,18 +46,19 @@ export function AlertToggleButton({
             {subscribed ? "Unsubscribing…" : "Subscribing…"}
           </>
         ) : subscribed ? (
-          "Unsubscribe from alerts"
+          "Unsubscribe from Daily Brief"
         ) : (
-          "Subscribe to alerts"
+          "Subscribe to Daily Brief"
         )}
       </button>
       {subscribed && !loading && (
         <p className="text-xs text-t-muted">
-          You&apos;ll receive an email whenever a tracked politician makes a new
-          trade on a monitored ticker.
+          Every morning at 8:00 UTC you&apos;ll get one email covering your
+          watchlist: latest headlines, earnings within 7 days, and recent
+          Senate trades.
         </p>
       )}
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-t-danger">{error}</p>}
     </div>
   );
 }

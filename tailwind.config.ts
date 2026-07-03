@@ -52,7 +52,7 @@ const config: Config = {
         sans:    ["var(--font-sans)", "system-ui", "sans-serif"],
         serif:   ["Georgia", "serif"],
         mono:    ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
-        display: ["'Clash Display'", "var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-sans)", "system-ui", "sans-serif"],
       },
 
       boxShadow: {

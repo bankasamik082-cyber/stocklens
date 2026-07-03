@@ -23,10 +23,10 @@ interface EarningsData {
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-ink-900/60 px-4 py-3">
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">{label}</div>
-      <div className="mt-1.5 font-mono text-lg font-semibold text-white">{value}</div>
-      {sub && <div className="mt-0.5 text-[10px] text-slate-600">{sub}</div>}
+    <div className="stat-chip">
+      <div className="label text-[10px]">{label}</div>
+      <div className="mt-1.5 font-mono text-lg font-semibold text-t-text">{value}</div>
+      {sub && <div className="mt-0.5 text-[10px] text-t-dim">{sub}</div>}
     </div>
   );
 }
@@ -39,9 +39,9 @@ function CustomTooltip({ active, payload, label }: {
   if (!active || !payload?.length) return null;
   const val = payload[0].value;
   return (
-    <div className="rounded-lg border border-white/[0.1] bg-ink-800 px-3 py-2 text-xs shadow-lg">
-      <p className="font-mono font-semibold text-white">{label}</p>
-      <p className={val >= 0 ? "text-emerald-400" : "text-rose-400"}>
+    <div className="rounded-lg border border-t-border bg-t-card px-3 py-2 text-xs shadow-lg">
+      <p className="font-mono font-semibold text-t-text">{label}</p>
+      <p className={val >= 0 ? "text-t-success" : "text-t-danger"}>
         {val >= 0 ? "Beat" : "Missed"} by {Math.abs(val).toFixed(2)}%
       </p>
     </div>
@@ -99,19 +99,30 @@ export function EarningsClient() {
           onChange={(e) => setTicker(e.target.value.toUpperCase())}
           placeholder="AAPL"
           maxLength={10}
-          className="w-40 rounded-xl border border-ink-600 bg-ink-800/60 px-4 py-2.5 font-mono text-sm font-semibold uppercase text-white placeholder-slate-600 outline-none backdrop-blur transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          className="input-base w-40 font-mono text-sm font-semibold uppercase"
         />
         <button
           type="submit"
           disabled={loading || !ticker.trim()}
-          className="rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/20 transition hover:from-brand-400 hover:to-brand-500 disabled:opacity-50"
+          className="btn-accent text-sm disabled:opacity-50"
         >
           {loading ? "Loading…" : "Analyze"}
         </button>
       </form>
 
+      {loading && (
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="skeleton h-20" />
+            <div className="skeleton h-20" />
+            <div className="skeleton h-20" />
+          </div>
+          <div className="skeleton h-52 w-full" />
+        </div>
+      )}
+
       {error && (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+        <div className="rounded-xl border border-t-danger/30 bg-t-danger/10 px-4 py-3 text-sm text-t-danger">
           {error}
         </div>
       )}
@@ -125,8 +136,8 @@ export function EarningsClient() {
         >
           {/* Header */}
           <div className="flex items-center gap-3">
-            <span className="font-mono text-2xl font-bold text-white">{data.ticker}</span>
-            <span className="text-sm text-slate-500">EPS Earnings Intelligence</span>
+            <span className="font-mono text-2xl font-bold text-t-text">{data.ticker}</span>
+            <span className="text-sm text-t-muted">EPS Earnings Intelligence</span>
           </div>
 
           {/* Stats */}
@@ -149,44 +160,44 @@ export function EarningsClient() {
 
           {/* AI summary */}
           {data.summary && (
-            <div className="rounded-xl border border-brand-500/15 bg-brand-500/5 px-5 py-4">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-brand-400">
+            <div className="rounded-xl border border-t-accent/15 bg-t-accent/5 px-5 py-4">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-t-accent">
                 AI Trend Summary
               </p>
-              <p className="text-sm leading-relaxed text-slate-300">{data.summary}</p>
-              <p className="mt-2 text-[10px] text-slate-700">Not financial advice. Research only.</p>
+              <p className="text-sm leading-relaxed text-t-muted">{data.summary}</p>
+              <p className="mt-2 text-[10px] text-t-dim">Not financial advice. Research only.</p>
             </div>
           )}
 
           {/* Bar chart — EPS surprise % */}
-          <div className="rounded-2xl border border-white/[0.07] bg-ink-800/40 p-5">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
+          <div className="card p-5">
+            <p className="label mb-4">
               EPS Surprise % — Last 8 Quarters
             </p>
             <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--t-border) / 0.4)" />
                   <XAxis
                     dataKey="label"
-                    tick={{ fill: "#64748b", fontSize: 10 }}
+                    tick={{ fill: "rgb(var(--t-muted))", fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fill: "#64748b", fontSize: 10 }}
+                    tick={{ fill: "rgb(var(--t-muted))", fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `${v}%`}
                     width={40}
                   />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-                  <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgb(var(--t-border) / 0.2)" }} />
+                  <ReferenceLine y={0} stroke="rgb(var(--t-border))" />
                   <Bar dataKey="surprise" radius={[3, 3, 0, 0]}>
                     {chartData.map((entry, i) => (
                       <Cell
                         key={i}
-                        fill={entry.beat ? "rgba(52,211,153,0.75)" : "rgba(248,113,113,0.75)"}
+                        fill={entry.beat ? "rgb(var(--t-success) / 0.75)" : "rgb(var(--t-danger) / 0.75)"}
                       />
                     ))}
                   </Bar>
@@ -196,12 +207,12 @@ export function EarningsClient() {
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto rounded-2xl border border-white/[0.07] bg-ink-800/40">
+          <div className="card overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-white/[0.06]">
+                <tr className="border-b border-t-border/60">
                   {["Period", "Estimate", "Actual", "Surprise", "Surprise %"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
+                    <th key={h} className="label px-4 py-3 text-[10px]">
                       {h}
                     </th>
                   ))}
@@ -211,23 +222,23 @@ export function EarningsClient() {
                 {[...data.earnings].reverse().map((r, i) => {
                   const beat = (r.surprise ?? 0) >= 0;
                   return (
-                    <tr key={i} className="border-t border-white/[0.04] transition hover:bg-white/[0.02]">
-                      <td className="px-4 py-3 font-mono text-xs text-slate-400">
+                    <tr key={i} className="border-t border-t-border/40 transition hover:bg-t-accent/[0.04]">
+                      <td className="px-4 py-3 font-mono text-xs text-t-muted">
                         {r.year}Q{r.quarter}
-                        <span className="ml-2 text-slate-700">{r.period}</span>
+                        <span className="ml-2 text-t-dim">{r.period}</span>
                       </td>
-                      <td className="px-4 py-3 font-mono text-sm text-slate-300">
+                      <td className="px-4 py-3 font-mono text-sm text-t-muted">
                         ${r.estimate?.toFixed(2) ?? "—"}
                       </td>
-                      <td className="px-4 py-3 font-mono text-sm font-semibold text-white">
+                      <td className="px-4 py-3 font-mono text-sm font-semibold text-t-text">
                         ${r.actual?.toFixed(2) ?? "—"}
                       </td>
-                      <td className={`px-4 py-3 font-mono text-sm ${beat ? "text-emerald-400" : "text-rose-400"}`}>
+                      <td className={`px-4 py-3 font-mono text-sm ${beat ? "text-t-success" : "text-t-danger"}`}>
                         {r.surprise !== null
                           ? `${beat ? "+" : ""}${r.surprise.toFixed(2)}`
                           : "—"}
                       </td>
-                      <td className={`px-4 py-3 font-mono text-sm ${beat ? "text-emerald-400" : "text-rose-400"}`}>
+                      <td className={`px-4 py-3 font-mono text-sm ${beat ? "text-t-success" : "text-t-danger"}`}>
                         {r.surprisePercent !== null
                           ? `${beat ? "+" : ""}${r.surprisePercent.toFixed(1)}%`
                           : "—"}
@@ -239,7 +250,7 @@ export function EarningsClient() {
             </table>
           </div>
 
-          <p className="text-xs text-slate-700">
+          <p className="text-xs text-t-dim">
             Data from Finnhub. EPS figures are non-GAAP where reported. Past earnings performance does not predict future results.
           </p>
         </motion.div>

@@ -3,6 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { Navbar } from "@/components/Navbar";
 import { PageTransition } from "@/components/PageTransition";
 import { TimelineClient } from "./TimelineClient";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Investment Timeline | StockLens",
+};
 
 export default async function TimelinePage() {
   const supabase = await createClient();
@@ -20,7 +25,7 @@ export default async function TimelinePage() {
               className="text-3xl font-bold tracking-tight"
               style={{
                 color: `rgb(var(--t-text))`,
-                fontFamily: `'Clash Display', var(--font-sans), sans-serif`,
+                fontFamily: `var(--font-display), var(--font-sans), sans-serif`,
               }}
             >
               Investment Timeline

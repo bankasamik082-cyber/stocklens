@@ -1,11 +1,11 @@
 type Tone = "neutral" | "brand" | "good" | "warn" | "bad";
 
 const TONES: Record<Tone, string> = {
-  neutral: "bg-ink-700/80 text-slate-300 border-white/10",
-  brand: "bg-brand-500/15 text-brand-200 border-brand-500/30",
-  good: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
-  warn: "bg-amber-500/10 text-amber-300 border-amber-500/30",
-  bad: "bg-rose-500/10 text-rose-300 border-rose-500/30",
+  neutral: "bg-t-surface text-t-muted border-t-border",
+  brand: "bg-t-accent/15 text-t-accent border-t-accent/30",
+  good: "bg-t-success/10 text-t-success border-t-success/30",
+  warn: "bg-t-warn/10 text-t-warn border-t-warn/30",
+  bad: "bg-t-danger/10 text-t-danger border-t-danger/30",
 };
 
 export function Badge({

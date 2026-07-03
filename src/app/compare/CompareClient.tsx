@@ -329,7 +329,7 @@ function ComparisonTable({
     <div
       className="overflow-x-auto rounded-3xl border"
       style={{
-        borderColor: `rgba(255,255,255,0.08)`,
+        borderColor: `rgb(var(--t-text) / 0.08)`,
         backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
         backdropFilter: `var(--card-blur, none)`,
         WebkitBackdropFilter: `var(--card-blur, none)`,
@@ -339,12 +339,12 @@ function ComparisonTable({
       <table className="w-full border-collapse" data-testid="compare-table">
         {/* Column headers = company names */}
         <thead>
-          <tr style={{ backgroundColor: `rgba(255,255,255,0.02)` }}>
+          <tr style={{ backgroundColor: `rgb(var(--t-text) / 0.02)` }}>
             <th
               className="px-5 py-4 text-left text-[10px] font-semibold uppercase tracking-widest"
               style={{
-                borderBottom: `1px solid rgba(255,255,255,0.06)`,
-                borderRight: `1px solid rgba(255,255,255,0.06)`,
+                borderBottom: `1px solid rgb(var(--t-text) / 0.06)`,
+                borderRight: `1px solid rgb(var(--t-text) / 0.06)`,
                 color: `rgb(var(--t-dim))`,
                 width: "160px",
                 minWidth: "140px",
@@ -357,8 +357,8 @@ function ComparisonTable({
                 key={c.ticker}
                 className="px-5 py-4 text-left"
                 style={{
-                  borderBottom: `1px solid rgba(255,255,255,0.06)`,
-                  borderRight: ci < colCount - 1 ? `1px solid rgba(255,255,255,0.04)` : undefined,
+                  borderBottom: `1px solid rgb(var(--t-text) / 0.06)`,
+                  borderRight: ci < colCount - 1 ? `1px solid rgb(var(--t-text) / 0.04)` : undefined,
                 }}
                 data-testid={`company-header-${c.ticker}`}
               >
@@ -367,9 +367,9 @@ function ComparisonTable({
                     <span
                       className="rounded-full px-2 py-0.5 text-[9px] font-bold"
                       style={{
-                        backgroundColor: `rgba(255,255,255,0.06)`,
+                        backgroundColor: `rgb(var(--t-text) / 0.06)`,
                         color: `rgb(var(--t-dim))`,
-                        border: `1px solid rgba(255,255,255,0.1)`,
+                        border: `1px solid rgb(var(--t-text) / 0.1)`,
                       }}
                     >
                       VS
@@ -380,7 +380,7 @@ function ComparisonTable({
                   className="text-lg font-bold tracking-tight"
                   style={{
                     color: `rgb(var(--t-text))`,
-                    fontFamily: `'Clash Display', var(--font-mono), ui-monospace, monospace`,
+                    fontFamily: `var(--font-display), var(--font-mono), ui-monospace, monospace`,
                   }}
                 >
                   {c.ticker}
@@ -407,8 +407,8 @@ function ComparisonTable({
                     colSpan={colCount + 1}
                     className="px-5 py-2"
                     style={{
-                      borderTop: `1px solid rgba(255,255,255,0.05)`,
-                      borderBottom: `1px solid rgba(255,255,255,0.05)`,
+                      borderTop: `1px solid rgb(var(--t-text) / 0.05)`,
+                      borderBottom: `1px solid rgb(var(--t-text) / 0.05)`,
                       backgroundColor: `rgba(212,175,55,0.04)`,
                     }}
                   >
@@ -429,8 +429,8 @@ function ComparisonTable({
                       <td
                         className="px-5 py-3.5 text-xs font-medium"
                         style={{
-                          borderBottom: `1px solid rgba(255,255,255,0.04)`,
-                          borderRight: `1px solid rgba(255,255,255,0.06)`,
+                          borderBottom: `1px solid rgb(var(--t-text) / 0.04)`,
+                          borderRight: `1px solid rgb(var(--t-text) / 0.06)`,
                           color: `rgb(var(--t-muted))`,
                         }}
                       >
@@ -457,8 +457,8 @@ function ComparisonTable({
                             key={c.ticker}
                             className="px-5 py-3.5 text-sm"
                             style={{
-                              borderBottom: `1px solid rgba(255,255,255,0.04)`,
-                              borderRight: ci < colCount - 1 ? `1px solid rgba(255,255,255,0.04)` : undefined,
+                              borderBottom: `1px solid rgb(var(--t-text) / 0.04)`,
+                              borderRight: ci < colCount - 1 ? `1px solid rgb(var(--t-text) / 0.04)` : undefined,
                               borderLeft: isWinner ? `2px solid rgb(var(--t-accent) / 0.6)` : undefined,
                               backgroundColor: isWinner ? `rgba(212,175,55,0.05)` : undefined,
                               color: `rgb(var(--t-text))`,
@@ -508,16 +508,17 @@ export function CompareClient() {
   const canCompare = filled.length >= 2;
 
   // Fetch peers when exactly one slot is filled
+  const soloTicker = filled.length === 1 ? filled[0].symbol : "";
   useEffect(() => {
-    if (filled.length !== 1) { setPeers([]); return; }
-    const ticker = filled[0].symbol;
+    if (!soloTicker) { setPeers([]); return; }
+    const ticker = soloTicker;
     let cancelled = false;
     fetch(`/api/peers?ticker=${encodeURIComponent(ticker)}`)
       .then((r) => r.ok ? r.json() : { peers: [] })
       .then((d: { peers?: string[] }) => { if (!cancelled) setPeers(d.peers ?? []); })
       .catch(() => { if (!cancelled) setPeers([]); });
     return () => { cancelled = true; };
-  }, [filled.length === 1 ? filled[0].symbol : ""]);
+  }, [soloTicker]);
 
   function setSlot(index: number, val: SelectedTicker | null) {
     setSlots((prev) => {
@@ -589,7 +590,7 @@ export function CompareClient() {
       <div
         className="rounded-3xl border p-5"
         style={{
-          borderColor: `rgba(255,255,255,0.08)`,
+          borderColor: `rgb(var(--t-text) / 0.08)`,
           backgroundColor: `var(--card-bg, rgb(var(--t-card)))`,
           backdropFilter: `var(--card-blur, none)`,
           WebkitBackdropFilter: `var(--card-blur, none)`,

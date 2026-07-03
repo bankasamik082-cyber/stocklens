@@ -9,7 +9,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-white/[0.07] bg-ink-800/50 shadow-card backdrop-blur-sm ${className}`}
+      className={`card ${className}`}
     >
       {children}
     </div>
@@ -24,8 +24,8 @@ export function CardHeader({
   badge?: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
-      <h3 className="text-sm font-semibold tracking-wide text-white/90 uppercase">
+    <div className="flex items-center justify-between border-b border-t-border/60 px-5 py-4">
+      <h3 className="text-sm font-semibold tracking-wide text-t-text uppercase">
         {title}
       </h3>
       {badge}

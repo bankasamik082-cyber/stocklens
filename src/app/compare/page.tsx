@@ -3,6 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { Navbar } from "@/components/Navbar";
 import { PageTransition } from "@/components/PageTransition";
 import { CompareClient } from "./CompareClient";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Compare Companies | StockLens",
+};
 
 export default async function ComparePage() {
   const supabase = await createClient();
@@ -20,7 +25,7 @@ export default async function ComparePage() {
               className="text-3xl font-bold tracking-tight"
               style={{
                 color: `rgb(var(--t-text))`,
-                fontFamily: `'Clash Display', var(--font-sans), sans-serif`,
+                fontFamily: `var(--font-display), var(--font-sans), sans-serif`,
               }}
             >
               Compare Companies

@@ -239,6 +239,13 @@ export async function getProfile(ticker: string): Promise<FmpProfile | null> {
   };
 }
 
+// CEO name comes from FMP's profile endpoint (Finnhub profile2 has no CEO).
+// FMP free tier restricts this to popular tickers — returns null elsewhere.
+export async function getCeo(ticker: string): Promise<string | null> {
+  const data = await fmpGet<Array<{ ceo?: string }>>(`/profile?symbol=${ticker}`);
+  return data?.[0]?.ceo || null;
+}
+
 // ---- Finnhub: financial statements (one API call, three datasets) ----
 // Use getFinancials() in the analyze route to avoid 3 separate calls.
 
@@ -548,6 +555,131 @@ export async function getPoliticianTrades(ticker: string) {
     senate,
     house: [],
   };
+}
+
+// ---- Recent Senate trades across a basket of popular tickers ----
+// Used by the dashboard intelligence card and the daily brief email.
+
+const POPULAR_DISCLOSURE_TICKERS = [
+  "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "JPM",
+];
+
+export interface RecentSenateTrade {
+  name: string;
+  ticker: string;
+  type: string;
+  amount: string;
+  date: string;
+}
+
+export async function getRecentSenateTrades(
+  limit = 3,
+  tickers: string[] = POPULAR_DISCLOSURE_TICKERS
+): Promise<RecentSenateTrade[]> {
+  const results = await Promise.all(
+    tickers.map((t) => getSenateTrades(t).catch(() => []))
+  );
+  const flat = results
+    .flat()
+    .filter((t) => t.transactionDate)
+    .map((t) => ({
+      name:
+        t.representative ||
+        [t.firstName, t.lastName].filter(Boolean).join(" ") ||
+        "Unknown senator",
+      ticker: t.symbol || "",
+      type: t.type || "Unknown",
+      amount: t.amount || "Not disclosed",
+      date: t.transactionDate!,
+    }));
+  flat.sort((a, b) => (a.date < b.date ? 1 : -1));
+  // De-dupe identical name+ticker+date+type rows (eFD often repeats filings)
+  const seen = new Set<string>();
+  const out: RecentSenateTrade[] = [];
+  for (const t of flat) {
+    const key = `${t.name}|${t.ticker}|${t.date}|${t.type}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+// ---- Finnhub: real-time quote ----
+
+interface FhQuote {
+  c: number;  // current price
+  d: number;  // change
+  dp: number; // percent change
+  h: number;
+  l: number;
+  o: number;
+  pc: number; // previous close
+}
+
+export interface Quote {
+  price: number;
+  change: number;
+  changePercent: number;
+}
+
+export async function getQuote(ticker: string): Promise<Quote | null> {
+  const q = await fhGet<FhQuote>(`/quote?symbol=${ticker}`);
+  if (!q || typeof q.c !== "number" || q.c === 0) return null;
+  return { price: q.c, change: q.d ?? 0, changePercent: q.dp ?? 0 };
+}
+
+// ---- Finnhub: earnings calendar ----
+
+interface FhEarningsCalendar {
+  earningsCalendar?: Array<{
+    date: string;
+    epsEstimate: number | null;
+    hour: string; // "bmo" | "amc" | "dmh" | ""
+    quarter: number;
+    symbol: string;
+    year: number;
+  }>;
+}
+
+export interface UpcomingEarnings {
+  ticker: string;
+  date: string;
+  hour: string; // "BMO" | "AMC" | ""
+  epsEstimate: number | null;
+}
+
+export async function getUpcomingEarnings(
+  tickers: string[],
+  daysAhead = 45
+): Promise<UpcomingEarnings[]> {
+  if (tickers.length === 0) return [];
+  const from = new Date().toISOString().slice(0, 10);
+  const to = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  const results = await Promise.all(
+    tickers.map((t) =>
+      fhGet<FhEarningsCalendar>(
+        `/calendar/earnings?from=${from}&to=${to}&symbol=${t}`
+      ).catch(() => null)
+    )
+  );
+  const out: UpcomingEarnings[] = [];
+  results.forEach((r, i) => {
+    const first = r?.earningsCalendar?.[0];
+    if (first?.date) {
+      out.push({
+        ticker: tickers[i],
+        date: first.date,
+        hour: first.hour === "bmo" ? "BMO" : first.hour === "amc" ? "AMC" : "",
+        epsEstimate: first.epsEstimate ?? null,
+      });
+    }
+  });
+  out.sort((a, b) => (a.date > b.date ? 1 : -1));
+  return out;
 }
 
 // ---- Formatting helpers ----

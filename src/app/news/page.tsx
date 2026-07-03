@@ -3,6 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { Navbar } from "@/components/Navbar";
 import { NewsFeed } from "@/components/NewsFeed";
 import { PageTransition } from "@/components/PageTransition";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Market News | StockLens",
+};
 
 export default async function MarketNewsPage() {
   const supabase = await createClient();
@@ -20,7 +25,7 @@ export default async function MarketNewsPage() {
           >
             <div className="label mb-3">Market Intelligence</div>
             <h1
-              className="font-serif text-4xl font-bold leading-tight tracking-tight sm:text-5xl"
+              className="font-display text-4xl font-bold leading-tight tracking-tight sm:text-5xl"
               style={{ color: `rgb(var(--t-text))` }}
             >
               Market News

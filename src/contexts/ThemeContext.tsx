@@ -8,14 +8,14 @@ import {
   useCallback,
 } from "react";
 
-export type Theme = "terminal" | "executive" | "midnight-gold" | "magma" | "liquid-glass";
+export type Theme = "terminal" | "executive" | "midnight-gold" | "magma" | "aurora";
 
 const VALID_THEMES: readonly Theme[] = [
   "terminal",
   "executive",
   "midnight-gold",
   "magma",
-  "liquid-glass",
+  "aurora",
 ];
 
 export const THEMES: {
@@ -56,12 +56,12 @@ export const THEMES: {
     accent2: "#FBBF24",
   },
   {
-    id: "liquid-glass",
-    label: "Liquid Glass",
-    description: "Ultra-frosted glass — Apple Vision Pro spatial aesthetic",
-    bg: "#020408",
-    accent: "#818CF8",
-    accent2: "#38BDF8",
+    id: "aurora",
+    label: "Aurora",
+    description: "Deep forest night, electric green — Bloomberg redesigned by Linear",
+    bg: "#060D0A",
+    accent: "#10B981",
+    accent2: "#14B8A6",
   },
 ];
 
@@ -80,9 +80,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("sl-theme") as Theme | null;
-      if (stored && (VALID_THEMES as string[]).includes(stored)) {
-        setThemeState(stored);
+      const stored = localStorage.getItem("sl-theme");
+      // Migrate removed Liquid Glass theme to its replacement
+      const migrated = stored === "liquid-glass" ? "aurora" : stored;
+      if (migrated && (VALID_THEMES as string[]).includes(migrated)) {
+        setThemeState(migrated as Theme);
       }
     } catch {}
   }, []);

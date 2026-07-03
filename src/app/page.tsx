@@ -83,7 +83,7 @@ export default async function LandingPage() {
                 className="mt-5 text-xs"
                 style={{ color: `rgb(var(--t-dim))` }}
               >
-                StockLens never says "buy" or "sell." Research tool, not financial advice.
+                StockLens never says &ldquo;buy&rdquo; or &ldquo;sell.&rdquo; Research tool, not financial advice.
               </p>
             </div>
           </section>

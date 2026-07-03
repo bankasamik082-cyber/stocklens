@@ -160,8 +160,8 @@ const EVENT_STYLES: Record<EventType, { color: string; label: string }> = {
   earnings:      { color: "var(--t-accent)", label: "Earnings" },
   news:          { color: "var(--t-success)", label: "News" },
   politician:    { color: "var(--t-warn)", label: "Politician trade" },
-  insider:       { color: "20, 184, 166", label: "Insider transaction" },
-  analystChange: { color: "100, 116, 139", label: "Analyst shift" },
+  insider:       { color: "20 184 166", label: "Insider transaction" },
+  analystChange: { color: "100 116 139", label: "Analyst shift" },
 };
 
 function dotColor(type: EventType) {
@@ -200,9 +200,11 @@ function PriceTooltip({ active, payload }: { active?: boolean; payload?: { paylo
 
 function EventPopover({
   event,
+  anchor,
   onClose,
 }: {
   event: TimelineEvent;
+  anchor: HTMLElement | null;
   onClose: () => void;
 }) {
   const isEarnings = event.type === "earnings";
@@ -210,20 +212,39 @@ function EventPopover({
   const isMiss = event.beat === false;
 
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [nudge, setNudge] = useState(0);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
+  // position: fixed — compute absolute screen coordinates from the marker's
+  // bounding rect and clamp horizontally so the popover never leaves the
+  // viewport. This is immune to overflow-hidden / transformed ancestors.
   useLayoutEffect(() => {
     const el = wrapRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const rightOverflow = rect.right - (window.innerWidth - 8);
-    const leftOverflow = 8 - rect.left;
-    if (rightOverflow > 0) setNudge(-rightOverflow);
-    else if (leftOverflow > 0) setNudge(leftOverflow);
-  }, []);
+    if (!el || !anchor) return;
+    const compute = () => {
+      const rect = anchor.getBoundingClientRect();
+      const w = el.offsetWidth || 256;
+      const h = el.offsetHeight || 160;
+      let left = rect.left + rect.width / 2 - w / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - w - 16));
+      let top = rect.top - h - 12;
+      if (top < 8) top = rect.bottom + 12; // flip below when no room above
+      setPos({ top, left });
+    };
+    compute();
+    window.addEventListener("scroll", compute, true);
+    window.addEventListener("resize", compute);
+    return () => {
+      window.removeEventListener("scroll", compute, true);
+      window.removeEventListener("resize", compute);
+    };
+  }, [anchor]);
 
   return (
-    <div ref={wrapRef} style={nudge ? { transform: `translateX(${nudge}px)` } : undefined}>
+    <div
+      ref={wrapRef}
+      className="fixed z-[100]"
+      style={pos ? { top: pos.top, left: pos.left } : { top: -9999, left: -9999, visibility: "hidden" }}
+    >
     <motion.div
       initial={{ opacity: 0, y: 6, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -356,64 +377,83 @@ function EventMarkersRow({
           style={{ backgroundColor: `rgb(var(--t-border) / 0.5)` }}
         />
 
-        {[...groups.entries()].map(([date, group]) => {
-          const x = xPct(date);
-          const isActive = group.some((e) => e.id === activeId);
-          const topEvent = group[0];
-
-          return (
-            <div
-              key={date + group.map((e) => e.type).join()}
-              className="absolute flex flex-col-reverse items-center"
-              style={{ left: `${x}%`, top: "50%", transform: "translate(-50%, -50%)" }}
-            >
-              {/* Popover: centered on dot, viewport-aware nudge handled inside EventPopover */}
-              <AnimatePresence>
-                {isActive && activeEvent && (
-                  <div
-                    className="absolute bottom-full mb-4 z-30"
-                    style={{ left: "50%", transform: "translateX(-50%)" }}
-                  >
-                    <EventPopover
-                      event={activeEvent}
-                      onClose={() => onToggle(activeEvent)}
-                    />
-                  </div>
-                )}
-              </AnimatePresence>
-
-              {/* Dot(s) — stacked if multiple same date */}
-              {group.slice(0, 3).map((ev, i) => (
-                <motion.button
-                  key={ev.id}
-                  type="button"
-                  onClick={() => onToggle(ev)}
-                  aria-label={ev.title}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: i * 0.02, duration: 0.2 }}
-                  className="flex h-4 w-4 items-center justify-center rounded-full border-2 transition-transform hover:scale-125"
-                  style={{
-                    backgroundColor: dotColor(ev.type),
-                    borderColor: `rgb(var(--t-card))`,
-                    marginTop: i > 0 ? -4 : 0,
-                    zIndex: 10 - i,
-                    outline: ev.id === activeId ? `2px solid ${dotColor(ev.type)}` : "none",
-                    outlineOffset: 2,
-                  }}
-                  data-testid={`event-dot-${ev.type}`}
-                  title={ev.title}
-                />
-              ))}
-              {group.length > 3 && (
-                <span className="text-[8px] font-bold" style={{ color: `rgb(var(--t-dim))` }}>
-                  +{group.length - 3}
-                </span>
-              )}
-            </div>
-          );
-        })}
+        {[...groups.entries()].map(([date, group]) => (
+          <MarkerGroup
+            key={date + group.map((e) => e.type).join()}
+            x={xPct(date)}
+            group={group}
+            activeId={activeId}
+            activeEvent={activeEvent}
+            onToggle={onToggle}
+          />
+        ))}
       </div>
+    </div>
+  );
+}
+
+// ---- Single marker group (dots + fixed-position popover) --------------------
+
+function MarkerGroup({
+  x,
+  group,
+  activeId,
+  activeEvent,
+  onToggle,
+}: {
+  x: number;
+  group: TimelineEvent[];
+  activeId: string | null;
+  activeEvent: TimelineEvent | null;
+  onToggle: (ev: TimelineEvent) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isActive = group.some((e) => e.id === activeId);
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute flex flex-col-reverse items-center"
+      style={{ left: `${x}%`, top: "50%", transform: "translate(-50%, -50%)" }}
+    >
+      <AnimatePresence>
+        {isActive && activeEvent && (
+          <EventPopover
+            event={activeEvent}
+            anchor={containerRef.current}
+            onClose={() => onToggle(activeEvent)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Dot(s) — stacked if multiple same date */}
+      {group.slice(0, 3).map((ev, i) => (
+        <motion.button
+          key={ev.id}
+          type="button"
+          onClick={() => onToggle(ev)}
+          aria-label={ev.title}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: i * 0.02, duration: 0.2 }}
+          className="flex h-4 w-4 items-center justify-center rounded-full border-2 transition-transform hover:scale-125"
+          style={{
+            backgroundColor: dotColor(ev.type),
+            borderColor: `rgb(var(--t-card))`,
+            marginTop: i > 0 ? -4 : 0,
+            zIndex: 10 - i,
+            outline: ev.id === activeId ? `2px solid ${dotColor(ev.type)}` : "none",
+            outlineOffset: 2,
+          }}
+          data-testid={`event-dot-${ev.type}`}
+          title={ev.title}
+        />
+      ))}
+      {group.length > 3 && (
+        <span className="text-[8px] font-bold" style={{ color: `rgb(var(--t-dim))` }}>
+          +{group.length - 3}
+        </span>
+      )}
     </div>
   );
 }
@@ -470,8 +510,8 @@ function EventListItem({ event, onFocus }: { event: TimelineEvent; onFocus: (ev:
       transition={{ duration: 0.18 }}
       className="flex items-stretch gap-0 rounded-xl overflow-hidden mb-2"
       style={{
-        border: `1px solid rgba(255,255,255,0.06)`,
-        backgroundColor: `rgba(255,255,255,0.02)`,
+        border: `1px solid rgb(var(--t-text) / 0.06)`,
+        backgroundColor: `rgb(var(--t-text) / 0.02)`,
       }}
     >
       {/* Left colour accent bar */}
@@ -527,7 +567,7 @@ function EventListItem({ event, onFocus }: { event: TimelineEvent; onFocus: (ev:
           type="button"
           onClick={() => onFocus(event)}
           className="shrink-0 rounded-lg border px-2 py-1 text-[10px] transition self-start mt-0.5"
-          style={{ borderColor: `rgba(255,255,255,0.08)`, color: `rgb(var(--t-dim))`, backgroundColor: `rgba(255,255,255,0.03)` }}
+          style={{ borderColor: `rgb(var(--t-text) / 0.08)`, color: `rgb(var(--t-dim))`, backgroundColor: `rgb(var(--t-text) / 0.03)` }}
           title="Show on chart"
         >
           ↑ Chart
@@ -609,7 +649,7 @@ export function TimelineClient() {
       <div
         className="rounded-3xl border p-5"
         style={{
-          borderColor: `rgba(255,255,255,0.08)`,
+          borderColor: `rgb(var(--t-text) / 0.08)`,
           backgroundColor: `var(--card-bg, rgb(var(--t-card)))`,
           backdropFilter: `var(--card-blur, none)`,
           WebkitBackdropFilter: `var(--card-blur, none)`,
@@ -624,7 +664,7 @@ export function TimelineClient() {
         <div
           className="rounded-3xl border p-5 space-y-3"
           style={{
-            borderColor: `rgba(255,255,255,0.08)`,
+            borderColor: `rgb(var(--t-text) / 0.08)`,
             backgroundColor: `var(--card-bg, rgb(var(--t-card)))`,
           }}
         >
@@ -654,7 +694,7 @@ export function TimelineClient() {
           ref={chartRef}
           className="overflow-hidden rounded-3xl border"
           style={{
-            borderColor: `rgba(255,255,255,0.08)`,
+            borderColor: `rgb(var(--t-text) / 0.08)`,
             backgroundColor: `var(--card-bg, rgb(var(--t-card)))`,
             backdropFilter: `var(--card-blur, none)`,
             WebkitBackdropFilter: `var(--card-blur, none)`,
@@ -665,14 +705,14 @@ export function TimelineClient() {
           {/* Header */}
           <div
             className="flex items-center justify-between px-5 py-4"
-            style={{ borderBottom: `1px solid rgba(255,255,255,0.06)` }}
+            style={{ borderBottom: `1px solid rgb(var(--t-text) / 0.06)` }}
           >
             <div>
               <span
                 className="text-sm font-bold"
                 style={{
                   color: `rgb(var(--t-text))`,
-                  fontFamily: `'Clash Display', var(--font-mono), ui-monospace, monospace`,
+                  fontFamily: `var(--font-display), var(--font-mono), ui-monospace, monospace`,
                 }}
               >
                 {currentTicker}
@@ -761,7 +801,7 @@ export function TimelineClient() {
         <div
           className="rounded-3xl border overflow-hidden"
           style={{
-            borderColor: `rgba(255,255,255,0.08)`,
+            borderColor: `rgb(var(--t-text) / 0.08)`,
             backgroundColor: `var(--card-bg, rgb(var(--t-card)))`,
             backdropFilter: `var(--card-blur, none)`,
             WebkitBackdropFilter: `var(--card-blur, none)`,
@@ -771,7 +811,7 @@ export function TimelineClient() {
         >
           <div
             className="px-5 py-4"
-            style={{ borderBottom: `1px solid rgba(255,255,255,0.06)` }}
+            style={{ borderBottom: `1px solid rgb(var(--t-text) / 0.06)` }}
           >
             <span className="text-xs font-semibold" style={{ color: `rgb(var(--t-muted))` }}>
               All Events — {eventsNewestFirst.length} total · most recent first
@@ -784,7 +824,7 @@ export function TimelineClient() {
           </div>
           <div
             className="px-5 py-3 text-center text-[10px]"
-            style={{ borderTop: `1px solid rgba(255,255,255,0.05)`, color: `rgb(var(--t-dim))` }}
+            style={{ borderTop: `1px solid rgb(var(--t-text) / 0.05)`, color: `rgb(var(--t-dim))` }}
           >
             Research only · not financial advice · sources: Finnhub, FMP, Twelve Data
           </div>
@@ -793,13 +833,20 @@ export function TimelineClient() {
 
       {data && data.events.length === 0 && (
         <div
-          className="rounded-xl border px-5 py-4 text-sm"
-          style={{
-            borderColor: `rgb(var(--t-border) / 0.5)`,
-            color: `rgb(var(--t-muted))`,
-          }}
+          className="flex flex-col items-center rounded-xl border px-5 py-10 text-center"
+          style={{ borderColor: `rgb(var(--t-border) / 0.5)` }}
         >
-          No events found for {currentTicker} in the past year.
+          <span className="text-2xl" style={{ color: `rgb(var(--t-dim))` }}>⌁</span>
+          <p className="mt-2 text-sm" style={{ color: `rgb(var(--t-muted))` }}>
+            No events found for {currentTicker} in the past year.
+          </p>
+          <button
+            type="button"
+            onClick={() => loadTimeline(currentTicker)}
+            className="btn-ghost mt-4 text-xs"
+          >
+            Try again ↻
+          </button>
         </div>
       )}
     </div>

@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { MobileNav } from "@/components/MobileNav";
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/watchlist", label: "Watchlist" },
   { href: "/compare",   label: "Compare" },
   { href: "/timeline",  label: "Timeline" },
   { href: "/earnings",  label: "Earnings" },
@@ -31,10 +33,10 @@ export function Navbar({ email }: { email?: string | null }) {
       className="sticky top-0 z-20 border-b"
       style={{
         backgroundColor: `rgb(var(--t-bg) / 0.75)`,
-        borderBottomColor: `rgba(255,255,255,0.06)`,
+        borderBottomColor: `rgb(var(--t-text) / 0.06)`,
         backdropFilter: "blur(28px) saturate(160%)",
         WebkitBackdropFilter: "blur(28px) saturate(160%)",
-        boxShadow: "0 1px 0 rgba(255,255,255,0.05)",
+        boxShadow: "0 1px 0 rgb(var(--t-text) / 0.05)",
       }}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 h-14">
@@ -52,14 +54,14 @@ export function Navbar({ email }: { email?: string | null }) {
           >
             <span
               className="relative z-10 text-[11px] font-bold tracking-tight"
-              style={{ color: `rgb(var(--t-bg))`, fontFamily: "'Clash Display', sans-serif" }}
+              style={{ color: `rgb(var(--t-bg))`, fontFamily: "var(--font-display), sans-serif" }}
             >
               SL
             </span>
           </div>
           <span
             className="text-base font-semibold tracking-tight"
-            style={{ color: `rgb(var(--t-text))`, fontFamily: "'Clash Display', sans-serif" }}
+            style={{ color: `rgb(var(--t-text))`, fontFamily: "var(--font-display), sans-serif" }}
           >
             Stock<span style={{ color: `rgb(var(--t-accent))` }}>Lens</span>
           </span>
@@ -106,7 +108,7 @@ export function Navbar({ email }: { email?: string | null }) {
             {/* Separator */}
             <div
               className="hidden lg:block w-px h-4 mx-3"
-              style={{ backgroundColor: `rgba(255,255,255,0.1)` }}
+              style={{ backgroundColor: `rgb(var(--t-text) / 0.1)` }}
             />
 
             {/* Cmd+K hint */}
@@ -117,9 +119,9 @@ export function Navbar({ email }: { email?: string | null }) {
               }}
               className="hidden lg:flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-mono transition"
               style={{
-                borderColor: `rgba(255,255,255,0.1)`,
+                borderColor: `rgb(var(--t-text) / 0.1)`,
                 color: `rgb(var(--t-dim))`,
-                backgroundColor: `rgba(255,255,255,0.03)`,
+                backgroundColor: `rgb(var(--t-text) / 0.03)`,
               }}
               title="Open command palette"
             >
@@ -141,9 +143,9 @@ export function Navbar({ email }: { email?: string | null }) {
               onClick={signOut}
               className="ml-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition"
               style={{
-                borderColor: `rgba(255,255,255,0.1)`,
+                borderColor: `rgb(var(--t-text) / 0.1)`,
                 color: `rgb(var(--t-muted))`,
-                backgroundColor: `rgba(255,255,255,0.03)`,
+                backgroundColor: `rgb(var(--t-text) / 0.03)`,
               }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLElement).style.color = `rgb(var(--t-text))`;
@@ -151,7 +153,7 @@ export function Navbar({ email }: { email?: string | null }) {
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLElement).style.color = `rgb(var(--t-muted))`;
-                (e.currentTarget as HTMLElement).style.borderColor = `rgba(255,255,255,0.1)`;
+                (e.currentTarget as HTMLElement).style.borderColor = `rgb(var(--t-text) / 0.1)`;
               }}
             >
               Sign out
@@ -163,6 +165,7 @@ export function Navbar({ email }: { email?: string | null }) {
           </Link>
         )}
       </div>
+      {email && <MobileNav />}
     </header>
   );
 }

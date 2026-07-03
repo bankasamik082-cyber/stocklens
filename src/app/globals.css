@@ -138,48 +138,53 @@
     radial-gradient(ellipse 55rem 45rem at -10% 55%, rgba(251,191,36,0.06) 0%, transparent 55%);
 
   --card-bg: rgba(255, 255, 255, 0.03);
+  --card-border: rgba(255, 180, 80, 0.12);
   --card-blur: blur(20px) saturate(140%);
   --card-shadow: 0 4px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+  --hover-glow: 0 0 28px -8px rgba(249,115,22,0.3);
 
   --noise-opacity: 0.035;
   --scrollbar-thumb: #3d1f0a;
 }
 
-[data-theme="liquid-glass"] {
+[data-theme="aurora"] {
   color-scheme: dark;
 
-  /* Backgrounds — near-black with cool blue undertone */
-  --t-bg:      2   4   8;     /* #020408 */
-  --t-surface: 6   8   16;    /* #060810 */
-  --t-card:    255 255 255;   /* used for alpha modifiers; actual bg via --card-bg */
+  /* Backgrounds — deep forest night */
+  --t-bg:      6   13  10;    /* #060D0A */
+  --t-surface: 10  20  16;    /* #0A1410 */
+  --t-card:    13  26  20;    /* #0D1A14 — solid fallback for popovers/tooltips */
 
-  /* Borders — pure white at various opacities */
-  --t-border:  255 255 255;   /* use at / 0.10–0.14 */
+  /* Borders — muted green-gray */
+  --t-border:  32  62  50;    /* #203E32 */
 
-  /* Accent — indigo/periwinkle */
-  --t-accent:  129 140 248;   /* #818CF8 */
+  /* Accent — electric green */
+  --t-accent:  16  185 129;   /* #10B981 */
 
-  /* Typography */
-  --t-text:    248 250 252;   /* #F8FAFC */
-  --t-muted:   130 135 148;   /* ≈ rgba(248,250,252,0.5) on dark */
-  --t-dim:     68  72  84;    /* ≈ rgba(248,250,252,0.28) on dark */
+  /* Typography — slightly green-tinted white */
+  --t-text:    240 253 244;   /* #F0FDF4 */
+  --t-muted:   134 158 144;   /* desaturated sage */
+  --t-dim:     66  88  76;    /* dim green-gray */
 
   /* Status */
   --t-success: 52  211 153;
   --t-danger:  248 113 113;
   --t-warn:    251 191 36;
 
-  /* Indigo + sky gradient */
+  /* Green + teal aurora glow */
   --body-grad:
-    radial-gradient(ellipse 100rem 65rem at 50% -10%, rgba(99,102,241,0.09) 0%, transparent 58%),
-    radial-gradient(ellipse 60rem 45rem at 92% 30%, rgba(56,189,248,0.06) 0%, transparent 52%);
+    radial-gradient(ellipse 110rem 70rem at 70% -15%, rgba(16,185,129,0.10) 0%, transparent 58%),
+    radial-gradient(ellipse 60rem 45rem at -10% 40%, rgba(20,184,166,0.07) 0%, transparent 52%),
+    radial-gradient(ellipse 80rem 55rem at 50% 115%, rgba(16,185,129,0.05) 0%, transparent 60%);
 
-  --card-bg: rgba(255, 255, 255, 0.06);
-  --card-blur: blur(40px) saturate(180%);
-  --card-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.10);
+  --card-bg: rgba(16, 185, 129, 0.05);
+  --card-border: rgba(16, 185, 129, 0.15);
+  --card-blur: blur(16px) saturate(130%);
+  --card-shadow: 0 4px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(16,185,129,0.08);
+  --hover-glow: 0 0 28px -6px rgba(16,185,129,0.35);
 
   --noise-opacity: 0.02;
-  --scrollbar-thumb: #1a1c2e;
+  --scrollbar-thumb: #14342a;
 }
 
 /* ── Base styles ──────────────────────────────────────────────────────────── */
@@ -187,6 +192,10 @@
 html,
 body {
   height: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -210,6 +219,49 @@ body::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 250px 250px;
+}
+
+/* ── User preferences: animation speed ─────────────────────────────────── */
+
+body[data-anim="fast"] *,
+body[data-anim="fast"] *::before,
+body[data-anim="fast"] *::after {
+  animation-duration: 0.5s !important;
+  transition-duration: 0.08s !important;
+}
+
+body[data-anim="reduced"] *,
+body[data-anim="reduced"] *::before,
+body[data-anim="reduced"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ── User preferences: data density (card padding) ─────────────────────── */
+
+body[data-density="compact"] .card,
+body[data-density="compact"] .surface {
+  --density-pad-scale: 0.7;
+}
+body[data-density="compact"] .card.p-5,
+body[data-density="compact"] .surface.p-5 { padding: 0.875rem; }
+body[data-density="compact"] .card.p-6,
+body[data-density="compact"] .surface.p-6 { padding: 1rem; }
+body[data-density="compact"] .card.p-4,
+body[data-density="compact"] .surface.p-4 { padding: 0.75rem; }
+
+body[data-density="spacious"] .card.p-5,
+body[data-density="spacious"] .surface.p-5 { padding: 1.75rem; }
+body[data-density="spacious"] .card.p-6,
+body[data-density="spacious"] .surface.p-6 { padding: 2rem; }
+body[data-density="spacious"] .card.p-4,
+body[data-density="spacious"] .surface.p-4 { padding: 1.375rem; }
+
+/* Reserve space for the fixed mobile bottom nav */
+@media (max-width: 767px) {
+  main {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important;
+  }
 }
 
 /* Scrollbar */
@@ -261,10 +313,10 @@ body::after {
     @apply bg-gradient-to-r from-brand-300 via-brand-400 to-indigo-300 bg-clip-text text-transparent;
   }
 
-  /* Card base — glassmorphism in midnight-gold, solid in others */
+  /* Card base — glassmorphism where the theme defines it, solid otherwise */
   .card {
     background-color: var(--card-bg, rgb(var(--t-card)));
-    border: 1px solid rgb(var(--t-border) / 0.75);
+    border: 1px solid var(--card-border, rgb(var(--t-border) / 0.75));
     border-radius: 1.25rem;
     backdrop-filter: var(--card-blur, none);
     -webkit-backdrop-filter: var(--card-blur, none);
@@ -274,7 +326,7 @@ body::after {
   /* Surface panel */
   .surface {
     background-color: var(--card-bg, rgb(var(--t-surface)));
-    border: 1px solid rgb(var(--t-border) / 0.6);
+    border: 1px solid var(--card-border, rgb(var(--t-border) / 0.6));
     border-radius: 1.25rem;
     backdrop-filter: var(--card-blur, none);
     -webkit-backdrop-filter: var(--card-blur, none);
@@ -380,6 +432,14 @@ body::after {
     padding: 0.75rem 1rem;
   }
 
+  /* Hide scrollbar (horizontal strips) */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Divider */
   .divider {
     border-top: 1px solid rgb(var(--t-border) / 0.6);
@@ -402,11 +462,12 @@ body::after {
   /* ── CSS-only hover helpers (safe to use in Server Components) ─────────── */
 
   .hover-card {
-    transition: border-color 0.15s ease, background-color 0.15s ease;
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.2s ease;
   }
   .hover-card:hover {
     border-color: rgb(var(--t-accent) / 0.3);
     background-color: rgb(var(--t-accent) / 0.04);
+    box-shadow: var(--hover-glow, none);
   }
 
   .hover-row {

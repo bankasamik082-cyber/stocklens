@@ -1,9 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Navbar } from "@/components/Navbar";
 import { SearchForm } from "@/components/SearchForm";
 import { PageTransition } from "@/components/PageTransition";
+import { IntelligenceHub } from "@/components/IntelligenceHub";
+import { Greeting } from "@/components/Greeting";
+
+export const metadata: Metadata = {
+  title: "Dashboard | StockLens",
+};
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -25,69 +32,52 @@ export default async function DashboardPage() {
   ]);
 
   const initialWatchlist = (savedStocks ?? []).map((r) => r.ticker);
-  const firstName = user.email?.split("@")[0];
+  const rawName = user.email?.split("@")[0] ?? "there";
+  const firstName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
 
   return (
     <div className="min-h-screen">
       <Navbar email={user.email} />
       <PageTransition>
-        <main className="mx-auto max-w-6xl px-4 py-10">
+        <main className="mx-auto max-w-6xl px-4 py-10 pb-24 md:pb-10">
 
-          {/* Header */}
-          <div className="mb-10">
-            <p className="label mb-2">Intelligence Hub</p>
-            <h1
-              className="text-3xl font-bold tracking-tight"
-              style={{
-                fontFamily: "'Clash Display', var(--font-sans), sans-serif",
-                color: `rgb(var(--t-text))`,
-              }}
-            >
-              Welcome back,{" "}
-              <span
-                style={{
-                  color: `rgb(var(--t-accent))`,
-                  textShadow: `0 0 32px rgb(var(--t-accent) / 0.4)`,
-                }}
-              >
-                {firstName}
-              </span>
-            </h1>
-            <p className="mt-1.5 text-sm" style={{ color: `rgb(var(--t-muted))` }}>
-              AI research with every claim cited. Enter a ticker to begin.
-            </p>
+          {/* Greeting */}
+          <div className="mb-8">
+            <Greeting name={firstName} />
+          </div>
+
+          {/* Intelligence hub: watchlist strip + market/earnings/political cards */}
+          <div className="mb-8">
+            <IntelligenceHub hasWatchlist={initialWatchlist.length > 0} />
           </div>
 
           {/* Two-panel layout */}
           <div className="grid gap-6 lg:grid-cols-[1fr_296px]">
 
-            {/* Left — Research panel */}
-            <div
-              className="rounded-3xl border p-6"
-              style={{
-                borderColor: `rgba(255,255,255,0.08)`,
-                backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
-                backdropFilter: `var(--card-blur, none)`,
-                WebkitBackdropFilter: `var(--card-blur, none)`,
-                boxShadow: `var(--card-shadow, none)`,
-              }}
-            >
-              <div className="label mb-5">New Research</div>
+            {/* Left — Research terminal */}
+            <div className="surface p-6">
+              <div className="mb-1 flex items-center gap-2">
+                <span style={{ color: `rgb(var(--t-accent))` }}>▮</span>
+                <span className="label">Research Terminal</span>
+              </div>
+              <p className="mb-5 text-xs" style={{ color: `rgb(var(--t-dim))` }}>
+                Generate Research Report — every claim cited to its source.
+              </p>
               <SearchForm initialWatchlist={initialWatchlist} />
 
               {/* Data sources footer */}
               <div
                 className="mt-6 flex flex-wrap gap-2 border-t pt-4"
-                style={{ borderColor: `rgba(255,255,255,0.06)` }}
+                style={{ borderColor: `rgb(var(--t-text) / 0.06)` }}
               >
                 {["Finnhub", "Twelve Data", "SEC EDGAR", "Gemini AI", "Senate eFD"].map((s) => (
                   <span
                     key={s}
                     className="rounded-full border px-2.5 py-1 text-[10px] font-medium"
                     style={{
-                      borderColor: `rgba(255,255,255,0.08)`,
+                      borderColor: `rgb(var(--t-text) / 0.08)`,
                       color: `rgb(var(--t-dim))`,
-                      backgroundColor: `rgba(255,255,255,0.03)`,
+                      backgroundColor: `rgb(var(--t-text) / 0.03)`,
                     }}
                   >
                     {s}
@@ -96,20 +86,11 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            {/* Right — Intelligence panel */}
+            {/* Right — panel */}
             <div className="flex flex-col gap-4">
 
               {/* Recent reports */}
-              <div
-                className="rounded-3xl border p-4"
-                style={{
-                  borderColor: `rgba(255,255,255,0.08)`,
-                  backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
-                  backdropFilter: `var(--card-blur, none)`,
-                  WebkitBackdropFilter: `var(--card-blur, none)`,
-                  boxShadow: `var(--card-shadow, none)`,
-                }}
-              >
+              <div className="surface p-4">
                 <div className="label mb-3">Recent Reports</div>
                 <div className="space-y-1.5">
                   {recent && recent.length > 0 ? (
@@ -118,17 +99,14 @@ export default async function DashboardPage() {
                         <div
                           className="hover-row flex items-center justify-between rounded-xl border px-3 py-2.5 transition-colors"
                           style={{
-                            borderColor: `rgba(255,255,255,0.06)`,
-                            backgroundColor: `rgba(255,255,255,0.02)`,
+                            borderColor: `rgb(var(--t-text) / 0.06)`,
+                            backgroundColor: `rgb(var(--t-text) / 0.02)`,
                           }}
                         >
                           <div>
                             <span
                               className="font-mono text-sm font-semibold"
-                              style={{
-                                color: `rgb(var(--t-text))`,
-                                fontFamily: `var(--font-mono), ui-monospace, monospace`,
-                              }}
+                              style={{ color: `rgb(var(--t-text))` }}
                             >
                               {r.ticker}
                             </span>
@@ -143,9 +121,8 @@ export default async function DashboardPage() {
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span
-                              className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                              className="rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold"
                               style={{
-                                fontFamily: `var(--font-mono), ui-monospace, monospace`,
                                 backgroundColor: `rgb(var(--t-accent) / 0.1)`,
                                 color: `rgb(var(--t-accent))`,
                               }}
@@ -160,28 +137,29 @@ export default async function DashboardPage() {
                   ) : (
                     <div
                       className="rounded-xl border border-dashed p-5 text-center"
-                      style={{ borderColor: `rgba(255,255,255,0.06)` }}
+                      style={{ borderColor: `rgb(var(--t-text) / 0.06)` }}
                     >
-                      <p className="text-sm" style={{ color: `rgb(var(--t-muted))` }}>No reports yet</p>
+                      <p className="text-lg" style={{ color: `rgb(var(--t-dim))` }}>◇</p>
+                      <p className="mt-1 text-sm" style={{ color: `rgb(var(--t-muted))` }}>No reports yet</p>
                       <p className="text-xs mt-1" style={{ color: `rgb(var(--t-dim))` }}>Run your first analysis →</p>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Watchlist */}
+              {/* Watchlist chips */}
               {initialWatchlist.length > 0 && (
-                <div
-                  className="rounded-3xl border p-4"
-                  style={{
-                    borderColor: `rgba(255,255,255,0.08)`,
-                    backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
-                    backdropFilter: `var(--card-blur, none)`,
-                    WebkitBackdropFilter: `var(--card-blur, none)`,
-                    boxShadow: `var(--card-shadow, none)`,
-                  }}
-                >
-                  <div className="label mb-3">Watchlist</div>
+                <div className="surface p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="label">Watchlist</span>
+                    <Link
+                      href="/watchlist"
+                      className="hover-accent-text text-[11px] font-semibold"
+                      style={{ color: `rgb(var(--t-muted))` }}
+                    >
+                      View all →
+                    </Link>
+                  </div>
                   <div className="flex flex-wrap gap-1.5">
                     {initialWatchlist.map((ticker) => (
                       <Link
@@ -189,10 +167,9 @@ export default async function DashboardPage() {
                         href={`/dashboard?ticker=${ticker}`}
                         className="hover-chip rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold transition-colors"
                         style={{
-                          fontFamily: `var(--font-mono), ui-monospace, monospace`,
-                          borderColor: `rgba(255,255,255,0.1)`,
+                          borderColor: `rgb(var(--t-text) / 0.1)`,
                           color: `rgb(var(--t-muted))`,
-                          backgroundColor: `rgba(255,255,255,0.03)`,
+                          backgroundColor: `rgb(var(--t-text) / 0.03)`,
                         }}
                       >
                         {ticker}
@@ -203,32 +180,23 @@ export default async function DashboardPage() {
               )}
 
               {/* Quick links */}
-              <div
-                className="rounded-3xl border p-4"
-                style={{
-                  borderColor: `rgba(255,255,255,0.08)`,
-                  backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
-                  backdropFilter: `var(--card-blur, none)`,
-                  WebkitBackdropFilter: `var(--card-blur, none)`,
-                  boxShadow: `var(--card-shadow, none)`,
-                }}
-              >
+              <div className="surface p-4">
                 <div className="label mb-3">Quick Access</div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { href: "/earnings", icon: "◑", label: "Earnings" },
-                    { href: "/news",     icon: "⬡", label: "News" },
-                    { href: "/alerts",   icon: "◎", label: "Alerts" },
-                    { href: "/explain",  icon: "⌁", label: "Explainer" },
+                    { href: "/earnings",  icon: "◑", label: "Earnings" },
+                    { href: "/news",      icon: "⬡", label: "News" },
+                    { href: "/watchlist", icon: "★", label: "Watchlist" },
+                    { href: "/alerts",    icon: "◎", label: "Alerts" },
                   ].map((item) => (
                     <Link
                       key={item.href}
                       href={item.href}
                       className="hover-quick-link flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition-colors"
                       style={{
-                        borderColor: `rgba(255,255,255,0.07)`,
+                        borderColor: `rgb(var(--t-text) / 0.07)`,
                         color: `rgb(var(--t-muted))`,
-                        backgroundColor: `rgba(255,255,255,0.02)`,
+                        backgroundColor: `rgb(var(--t-text) / 0.02)`,
                       }}
                     >
                       <span style={{ color: `rgb(var(--t-accent))` }}>{item.icon}</span>

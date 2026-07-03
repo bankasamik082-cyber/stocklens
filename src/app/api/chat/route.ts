@@ -22,7 +22,6 @@ interface ChatMessage {
   sources?: string[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildContextBlock(ticker: string, companyName: string, ctx: any): string {
   const lines: string[] = [];
 
@@ -96,11 +95,14 @@ function buildContextBlock(ticker: string, companyName: string, ctx: any): strin
     netShares: number;
     transactions: Array<{ name: string; type: string; shares: number; value: number | null; date: string }>;
   } | null | undefined;
-  lines.push("--- INSIDER ACTIVITY (source: Finnhub — Insider transactions) ---");
-  if (!insider || insider.transactions.length === 0) {
+  lines.push("--- INSIDER ACTIVITY — insider buying and selling (source: Finnhub — Insider transactions) ---");
+  if (!insider || !Array.isArray(insider.transactions) || insider.transactions.length === 0) {
     lines.push("No recent insider transactions found for this ticker.");
   } else {
-    lines.push(`Net shares across recent transactions: ${insider.netShares >= 0 ? "+" : ""}${insider.netShares.toLocaleString()} (positive = net buying)`);
+    lines.push(
+      `Summary: insiders have been NET ${insider.netShares >= 0 ? "BUYING" : "SELLING"} — net ${Math.abs(insider.netShares).toLocaleString()} shares ${insider.netShares >= 0 ? "acquired" : "disposed"} across the most recent transactions.`
+    );
+    lines.push("Recent individual insider transactions:");
     insider.transactions.forEach((t) => {
       const val = t.value != null ? ` ($${(t.value / 1_000_000).toFixed(2)}M)` : "";
       lines.push(`  ${t.name}: ${t.type} of ${t.shares.toLocaleString()} shares${val} on ${t.date}`);
@@ -131,10 +133,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ctx = context as any;
   const companyName: string = ctx.companyName || ticker;
   const contextBlock = buildContextBlock(ticker as string, companyName, ctx);
+
+  // Debug: log exactly what context is sent to Gemini so missing sections
+  // (e.g. insider transactions) are visible in server logs.
+  console.log(
+    `[chat] ${ticker} context — insiderActivity: ${ctx.insiderActivity ? `${ctx.insiderActivity.transactions?.length ?? 0} txns` : "MISSING"}, ` +
+    `analystConsensus: ${ctx.analystConsensus ? "present" : "MISSING"}, news: ${ctx.news?.length ?? 0}, block: ${contextBlock.length} chars`
+  );
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[chat] full context block for ${ticker}:\n${contextBlock}`);
+  }
 
   // The priming exchange: inject the full data snapshot as the opening pair
   // so Gemini treats it as established context throughout the conversation.

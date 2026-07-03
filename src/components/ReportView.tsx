@@ -26,18 +26,18 @@ function Sources({ sources }: { sources?: Source[] }) {
   }
   return (
     <div
-      className="mt-5 border-t pt-4"
+      className="mt-5 border-t pt-3"
       style={{ borderColor: `rgb(var(--t-border) / 0.4)` }}
     >
-      <p
-        className="mb-2 text-[10px] font-semibold uppercase tracking-widest"
-        style={{ color: `rgb(var(--t-dim))` }}
-      >
-        Sources
-      </p>
-      <ul className="flex flex-wrap gap-2">
+      <ul className="scrollbar-none flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+        <li
+          className="shrink-0 text-[10px] font-semibold uppercase tracking-widest"
+          style={{ color: `rgb(var(--t-dim))` }}
+        >
+          Sources
+        </li>
         {sources.map((s, i) => (
-          <li key={i}>
+          <li key={i} className="shrink-0">
             <a
               href={s.url}
               target="_blank"
@@ -73,8 +73,8 @@ function Stat({ label, value, definition }: { label: string; value: string; defi
     <div
       className="rounded-xl border px-4 py-3"
       style={{
-        borderColor: `rgba(255,255,255,0.07)`,
-        backgroundColor: `rgba(255,255,255,0.03)`,
+        borderColor: `rgb(var(--t-text) / 0.07)`,
+        backgroundColor: `rgb(var(--t-text) / 0.03)`,
       }}
     >
       <div
@@ -85,8 +85,10 @@ function Stat({ label, value, definition }: { label: string; value: string; defi
         {def && <InfoTooltip text={def} />}
       </div>
       <div
-        className="mt-1.5 text-base font-semibold"
+        className="mt-1.5 font-semibold"
         style={{
+          fontSize: "1.35rem",
+          lineHeight: 1.25,
           color: `rgb(var(--t-text))`,
           fontFamily: `var(--font-mono), ui-monospace, monospace`,
         }}
@@ -101,10 +103,12 @@ export function ReportView({
   report,
   sources,
   selected,
+  peerNames,
 }: {
   report: GeneratedReport;
   sources: SourcesBySection;
   selected: SectionId[];
+  peerNames?: Record<string, string>;
 }) {
   const shown = SECTION_ORDER.filter((id) => selected.includes(id));
 
@@ -113,9 +117,11 @@ export function ReportView({
       {shown.map((id, idx) => (
         <section
           key={id}
-          className="overflow-hidden rounded-3xl border"
+          id={`section-${id}`}
+          className="overflow-hidden rounded-3xl border scroll-mt-20"
           style={{
-            borderColor: `rgba(255,255,255,0.08)`,
+            borderColor: `rgb(var(--t-text) / 0.08)`,
+            borderLeft: `3px solid rgb(var(--t-accent) / 0.35)`,
             backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
             backdropFilter: `var(--card-blur, none)`,
             WebkitBackdropFilter: `var(--card-blur, none)`,
@@ -124,17 +130,16 @@ export function ReportView({
         >
           <div
             className="flex items-center justify-between px-5 py-4"
-            style={{ borderBottom: `1px solid rgba(255,255,255,0.06)` }}
+            style={{ borderBottom: `1px solid rgb(var(--t-text) / 0.06)` }}
           >
             <div className="flex items-center gap-3">
               <span
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-[11px] font-bold"
+                className="text-sm font-bold"
                 style={{
                   fontFamily: `var(--font-mono), ui-monospace, monospace`,
-                  backgroundColor: `rgb(var(--t-accent) / 0.12)`,
-                  border: `1px solid rgb(var(--t-accent) / 0.2)`,
                   color: `rgb(var(--t-accent))`,
-                  boxShadow: `0 0 12px rgb(var(--t-accent) / 0.15)`,
+                  textShadow: `0 0 14px rgb(var(--t-accent) / 0.5)`,
+                  letterSpacing: "0.05em",
                 }}
               >
                 {String(idx + 1).padStart(2, "0")}
@@ -157,34 +162,59 @@ export function ReportView({
 
       {report.peers && report.peers.length > 0 && (
         <div
-          className="rounded-3xl border px-5 py-4"
+          className="rounded-3xl border px-5 py-5"
           style={{
-            borderColor: `rgba(255,255,255,0.08)`,
+            borderColor: `rgb(var(--t-accent) / 0.2)`,
             backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
             backdropFilter: `var(--card-blur, none)`,
             WebkitBackdropFilter: `var(--card-blur, none)`,
             boxShadow: `var(--card-shadow, none)`,
           }}
         >
-          <p
-            className="mb-3 text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: `rgb(var(--t-dim))` }}
-          >
-            Related companies
-          </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="mb-4 flex items-center gap-3">
+            <span
+              className="text-sm font-bold"
+              style={{
+                fontFamily: `var(--font-mono), ui-monospace, monospace`,
+                color: `rgb(var(--t-accent))`,
+                textShadow: `0 0 14px rgb(var(--t-accent) / 0.5)`,
+              }}
+            >
+              ⧉
+            </span>
+            <p
+              className="text-[11px] font-semibold uppercase tracking-widest"
+              style={{ color: `rgb(var(--t-muted))` }}
+            >
+              Related companies
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
             {report.peers.map((peer) => (
               <Link
                 key={peer}
                 href={`/dashboard?ticker=${peer}`}
-                className="rounded-lg border px-3 py-1.5 font-mono text-xs font-semibold transition-colors"
+                className="hover-card rounded-xl border px-3 py-2.5 transition-colors"
                 style={{
                   borderColor: `rgb(var(--t-border) / 0.6)`,
-                  color: `rgb(var(--t-accent))`,
-                  backgroundColor: `rgb(var(--t-accent) / 0.06)`,
+                  backgroundColor: `rgb(var(--t-accent) / 0.04)`,
                 }}
               >
-                {peer}
+                <span
+                  className="block font-mono text-sm font-bold"
+                  style={{ color: `rgb(var(--t-accent))` }}
+                >
+                  {peer}
+                </span>
+                {peerNames?.[peer] && (
+                  <span
+                    className="mt-0.5 block truncate text-[11px]"
+                    style={{ color: `rgb(var(--t-muted))` }}
+                    title={peerNames[peer]}
+                  >
+                    {peerNames[peer]}
+                  </span>
+                )}
               </Link>
             ))}
           </div>

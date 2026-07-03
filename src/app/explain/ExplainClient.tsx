@@ -42,18 +42,18 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: { paylo
   const d = payload[0].payload;
   const up = d.changePercent >= 0;
   return (
-    <div className="rounded-xl border border-white/[0.1] bg-ink-900/95 px-3 py-2.5 shadow-xl backdrop-blur-sm">
-      <p className="mb-1 text-[11px] text-slate-500">{d.date}</p>
-      <p className="font-mono text-sm font-semibold text-white">
+    <div className="rounded-xl border border-t-border bg-t-card px-3 py-2.5 shadow-xl backdrop-blur-sm">
+      <p className="mb-1 text-[11px] text-t-dim">{d.date}</p>
+      <p className="font-mono text-sm font-semibold text-t-text">
         ${d.close.toFixed(2)}
       </p>
       <p
-        className={`text-xs font-semibold ${up ? "text-emerald-400" : "text-red-400"}`}
+        className={`text-xs font-semibold ${up ? "text-t-success" : "text-t-danger"}`}
       >
         {up ? "+" : ""}
         {d.changePercent.toFixed(2)}%
       </p>
-      <p className="mt-1 text-[10px] text-slate-600">Click to explain</p>
+      <p className="mt-1 text-[10px] text-t-dim">Click to explain</p>
     </div>
   );
 }
@@ -61,8 +61,8 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: { paylo
 function SourceList({ sources }: { sources: Source[] }) {
   if (!sources.length) return null;
   return (
-    <div className="mt-5 border-t border-white/[0.05] pt-4">
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-700">
+    <div className="mt-5 border-t border-t-border/50 pt-4">
+      <p className="label mb-2 text-[10px]">
         Sources
       </p>
       <ul className="flex flex-wrap gap-2">
@@ -72,7 +72,7 @@ function SourceList({ sources }: { sources: Source[] }) {
               href={s.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] bg-ink-900/60 px-3 py-1 text-xs text-brand-400 transition hover:border-brand-500/30 hover:text-brand-300"
+              className="source-pill"
             >
               <span className="text-[10px]">↗</span>
               {s.label}
@@ -156,11 +156,11 @@ export function ExplainClient() {
       {/* ---- Ticker input ---- */}
       <form
         onSubmit={handleFetchPrices}
-        className="rounded-2xl border border-white/[0.07] bg-ink-800/50 p-5 shadow-card backdrop-blur-sm"
+        className="card p-5"
       >
         <label
           htmlFor="explain-ticker"
-          className="mb-2 block text-xs font-semibold uppercase tracking-widest text-slate-500"
+          className="label mb-2 block"
         >
           Stock ticker
         </label>
@@ -172,16 +172,16 @@ export function ExplainClient() {
             placeholder="e.g. AAPL"
             autoComplete="off"
             spellCheck={false}
-            className="flex-1 rounded-xl border border-ink-600 bg-ink-900/80 px-4 py-3.5 font-mono text-xl tracking-wider text-white placeholder-ink-600 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15"
+            className="input-base flex-1 px-4 py-3.5 font-mono text-xl tracking-wider"
           />
           <button
             type="submit"
             disabled={loadingPrices || !ticker.trim()}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/20 transition hover:from-brand-400 hover:to-brand-500 disabled:opacity-50"
+            className="btn-accent flex items-center gap-2 px-5 py-3.5 text-sm disabled:opacity-50"
           >
             {loadingPrices ? (
               <>
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                 Loading…
               </>
             ) : (
@@ -197,8 +197,8 @@ export function ExplainClient() {
               onClick={() => setTicker(p)}
               className={`rounded-full border px-3 py-1 font-mono text-xs font-semibold transition ${
                 ticker === p
-                  ? "border-brand-500/50 bg-brand-500/15 text-brand-300"
-                  : "border-ink-600 text-slate-500 hover:border-ink-500 hover:text-slate-300"
+                  ? "border-t-accent/50 bg-t-accent/15 text-t-accent"
+                  : "border-t-border text-t-muted hover-chip"
               }`}
             >
               {p}
@@ -206,23 +206,23 @@ export function ExplainClient() {
           ))}
         </div>
         {priceError && (
-          <p className="mt-3 text-sm text-red-400">{priceError}</p>
+          <p className="mt-3 text-sm text-t-danger">{priceError}</p>
         )}
       </form>
 
       {/* ---- Price chart ---- */}
       {prices.length > 0 && (
-        <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-ink-800/50 backdrop-blur-sm">
-          <div className="flex items-center justify-between border-b border-white/[0.05] px-5 py-4">
+        <div className="card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-t-border/50 px-5 py-4">
             <div>
-              <span className="font-mono text-sm font-semibold text-white">
+              <span className="font-mono text-sm font-semibold text-t-text">
                 {currentTicker}
               </span>
-              <span className="ml-2 text-xs text-slate-600">
+              <span className="ml-2 text-xs text-t-muted">
                 12-month closing price
               </span>
             </div>
-            <span className="text-xs text-slate-600">
+            <span className="text-xs text-t-muted">
               Click any date to explain the move
             </span>
           </div>
@@ -236,7 +236,7 @@ export function ExplainClient() {
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke="#1e293b"
+                  stroke="rgb(var(--t-border) / 0.5)"
                   vertical={false}
                 />
                 <XAxis
@@ -249,13 +249,13 @@ export function ExplainClient() {
                       day: "numeric",
                     });
                   }}
-                  tick={{ fill: "#475569", fontSize: 11 }}
+                  tick={{ fill: "rgb(var(--t-muted))", fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
                   tickFormatter={(v: number) => `$${v.toFixed(0)}`}
-                  tick={{ fill: "#475569", fontSize: 11 }}
+                  tick={{ fill: "rgb(var(--t-muted))", fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                   width={62}
@@ -265,7 +265,7 @@ export function ExplainClient() {
                 {selectedDate && (
                   <ReferenceLine
                     x={selectedDate}
-                    stroke="#818cf8"
+                    stroke="rgb(var(--t-accent))"
                     strokeDasharray="4 4"
                     strokeWidth={1.5}
                   />
@@ -273,10 +273,10 @@ export function ExplainClient() {
                 <Line
                   type="monotone"
                   dataKey="close"
-                  stroke="#818cf8"
+                  stroke="rgb(var(--t-accent))"
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 5, fill: "#818cf8", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "rgb(var(--t-accent))", strokeWidth: 0 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -286,11 +286,11 @@ export function ExplainClient() {
 
       {/* ---- Explanation panel ---- */}
       {(selectedDate || loadingExplain) && (
-        <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-ink-800/50 backdrop-blur-sm">
-          <div className="border-b border-white/[0.05] px-5 py-4">
+        <div className="card overflow-hidden">
+          <div className="border-b border-t-border/50 px-5 py-4">
             {selectedDate && result ? (
               <div className="flex items-center gap-3">
-                <h2 className="text-sm font-semibold text-white">
+                <h2 className="text-sm font-semibold text-t-text">
                   What happened on{" "}
                   {new Date(`${result.date}T12:00:00`).toLocaleDateString(
                     "en-US",
@@ -300,21 +300,21 @@ export function ExplainClient() {
                 <span
                   className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-mono text-xs font-bold ${
                     result.priceChangePercent >= 0
-                      ? "bg-emerald-500/15 text-emerald-400"
-                      : "bg-red-500/15 text-red-400"
+                      ? "bg-t-success/15 text-t-success"
+                      : "bg-t-danger/15 text-t-danger"
                   }`}
                 >
                   {result.priceChangePercent >= 0 ? "+" : ""}
                   {result.priceChangePercent.toFixed(2)}%
                 </span>
-                <span className="font-mono text-xs text-slate-500">
+                <span className="font-mono text-xs text-t-muted">
                   ${result.close.toFixed(2)}
                 </span>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
-                <span className="text-sm text-slate-500">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-t-accent border-t-transparent" />
+                <span className="text-sm text-t-muted">
                   Fetching news and trades for {selectedDate}…
                 </span>
               </div>
@@ -324,19 +324,19 @@ export function ExplainClient() {
           <div className="px-5 py-5">
             {loadingExplain ? (
               <div className="space-y-2">
-                <div className="h-4 w-full animate-pulse rounded bg-ink-700/60" />
-                <div className="h-4 w-5/6 animate-pulse rounded bg-ink-700/60" />
-                <div className="h-4 w-4/6 animate-pulse rounded bg-ink-700/60" />
+                <div className="skeleton h-4 w-full" />
+                <div className="skeleton h-4 w-5/6" />
+                <div className="skeleton h-4 w-4/6" />
               </div>
             ) : explainError ? (
-              <p className="text-sm text-red-400">{explainError}</p>
+              <p className="text-sm text-t-danger">{explainError}</p>
             ) : result ? (
               <>
-                <p className="text-sm leading-relaxed text-slate-300">
+                <p className="text-sm leading-relaxed text-t-muted">
                   {result.explanation}
                 </p>
                 <SourceList sources={result.sources} />
-                <p className="mt-4 text-xs text-slate-700">
+                <p className="mt-4 text-xs text-t-dim">
                   Research only — not financial advice. Data from FMP and
                   Finnhub.
                 </p>

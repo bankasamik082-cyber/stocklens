@@ -11,13 +11,12 @@ interface ChatMessage {
   loading?: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ChatContext = Record<string, any>;
 
 const SUGGESTED_QUESTIONS = [
   "Summarize the financial health",
   "What are the biggest risks in recent news?",
-  "Has debt been increasing?",
+  "Have insiders been buying or selling?",
   "Any politician trades worth noting?",
 ];
 
@@ -49,7 +48,7 @@ export function ChatPanel({
           {
             id: "greeting",
             role: "assistant",
-            content: `I have a fresh data snapshot for **${data.companyName}** (${ticker}). Ask me anything about the financials, recent news, or disclosed politician trades — I'll cite my sources.`,
+            content: `I have a fresh data snapshot for **${data.companyName}** (${ticker}). Ask me anything about the financials, recent news, insider transactions, analyst ratings, or disclosed politician trades — I'll cite my sources.`,
             sources: [],
           },
         ]);

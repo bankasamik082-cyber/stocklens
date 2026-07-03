@@ -83,14 +83,14 @@ export default function LoginPage() {
             className="text-3xl font-bold leading-tight tracking-tight"
             style={{ color: `rgb(var(--t-text))` }}
           >
-            "Every section cites{" "}
+            &ldquo;Every section cites{" "}
             <span
               className="bg-clip-text text-transparent"
               style={{
                 backgroundImage: `linear-gradient(90deg, rgb(var(--t-accent)), rgb(var(--t-accent) / 0.6))`,
               }}
             >
-              its source."
+              its source.&rdquo;
             </span>
           </blockquote>
           <div className="space-y-3">
@@ -135,7 +135,7 @@ export default function LoginPage() {
 
         <div className="w-full max-w-sm">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold tracking-tight" style={{ color: `rgb(var(--t-text))` }}>
+            <h1 className="font-display text-2xl font-bold tracking-tight" style={{ color: `rgb(var(--t-text))` }}>
               {mode === "login" ? "Welcome back" : "Create your account"}
             </h1>
             <p className="mt-1.5 text-sm" style={{ color: `rgb(var(--t-muted))` }}>

@@ -1,11 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { ChatPanel } from "@/components/ChatPanel";
 
 export function ChatButton({ ticker }: { ticker: string }) {
   const [open, setOpen] = useState(false);
+
+  // Allow other components (e.g. report Quick Actions) to open the chat
+  useEffect(() => {
+    const openChat = () => setOpen(true);
+    window.addEventListener("sl-open-chat", openChat);
+    return () => window.removeEventListener("sl-open-chat", openChat);
+  }, []);
 
   return (
     <>

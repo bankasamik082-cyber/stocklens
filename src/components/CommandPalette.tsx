@@ -174,11 +174,11 @@ export function CommandPalette() {
               className="w-full max-w-xl pointer-events-auto overflow-hidden shadow-2xl"
               style={{
                 borderRadius: "1.5rem",
-                border: "1px solid rgba(255,255,255,0.1)",
+                border: "1px solid rgb(var(--t-text) / 0.1)",
                 backgroundColor: "rgba(10,13,26,0.92)",
                 backdropFilter: "blur(32px) saturate(180%)",
                 WebkitBackdropFilter: "blur(32px) saturate(180%)",
-                boxShadow: "0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)",
+                boxShadow: "0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgb(var(--t-text) / 0.08)",
               }}
               initial={{ opacity: 0, y: -16, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -188,7 +188,7 @@ export function CommandPalette() {
               {/* Input */}
               <div
                 className="flex items-center gap-3 px-5 py-4"
-                style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+                style={{ borderBottom: "1px solid rgb(var(--t-text) / 0.07)" }}
               >
                 <span className="text-lg shrink-0" style={{ color: `rgb(var(--t-accent))` }}>⌘</span>
                 <input
@@ -203,12 +203,12 @@ export function CommandPalette() {
                 {tickerLoading && (
                   <span
                     className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2"
-                    style={{ borderColor: `rgba(255,255,255,0.15)`, borderTopColor: `rgb(var(--t-accent))` }}
+                    style={{ borderColor: `rgb(var(--t-text) / 0.15)`, borderTopColor: `rgb(var(--t-accent))` }}
                   />
                 )}
                 <kbd
                   className="shrink-0 rounded-lg border px-2 py-1 text-[10px] font-mono"
-                  style={{ borderColor: "rgba(255,255,255,0.1)", color: `rgb(var(--t-dim))`, backgroundColor: "rgba(255,255,255,0.04)" }}
+                  style={{ borderColor: "rgb(var(--t-text) / 0.1)", color: `rgb(var(--t-dim))`, backgroundColor: "rgb(var(--t-text) / 0.04)" }}
                 >
                   ESC
                 </kbd>
@@ -243,7 +243,7 @@ export function CommandPalette() {
                       {i === activeIndex && (
                         <kbd
                           className="shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-mono"
-                          style={{ borderColor: "rgba(255,255,255,0.1)", color: `rgb(var(--t-dim))` }}
+                          style={{ borderColor: "rgb(var(--t-text) / 0.1)", color: `rgb(var(--t-dim))` }}
                         >
                           ↵
                         </kbd>
@@ -256,13 +256,13 @@ export function CommandPalette() {
               {/* Footer */}
               <div
                 className="px-5 py-3 flex items-center gap-5"
-                style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
+                style={{ borderTop: "1px solid rgb(var(--t-text) / 0.07)" }}
               >
                 {[["↑↓", "navigate"], ["↵", "select"], ["esc", "close"]].map(([key, hint]) => (
                   <span key={key} className="flex items-center gap-1.5">
                     <kbd
                       className="rounded border px-1.5 py-0.5 text-[10px] font-mono"
-                      style={{ borderColor: "rgba(255,255,255,0.1)", color: `rgb(var(--t-dim))` }}
+                      style={{ borderColor: "rgb(var(--t-text) / 0.1)", color: `rgb(var(--t-dim))` }}
                     >
                       {key}
                     </kbd>

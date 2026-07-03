@@ -4,19 +4,34 @@ import { Navbar } from "@/components/Navbar";
 import { MAJOR_POLITICIANS } from "@/lib/politicians";
 import { PageTransition } from "@/components/PageTransition";
 import { AlertToggleButton } from "./AlertToggleButton";
+import { DailyBriefToggle } from "./DailyBriefToggle";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Alerts | StockLens",
+};
 
 export default async function AlertsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: subscription } = await supabase
-    .from("alert_subscriptions")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const [{ data: subscription }, briefResult] = await Promise.all([
+    supabase
+      .from("alert_subscriptions")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("daily_brief_subscriptions")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
 
   const isSubscribed = !!subscription;
+  // Table may not exist until the schema migration runs — treat as unsubscribed
+  const briefSubscribed = !briefResult.error && !!briefResult.data;
 
   return (
     <div className="min-h-screen">
@@ -29,7 +44,7 @@ export default async function AlertsPage() {
           >
             <div className="label mb-3">Trade Surveillance</div>
             <h1
-              className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl"
+              className="font-display text-4xl font-bold leading-tight tracking-tight sm:text-5xl"
               style={{ color: `rgb(var(--t-text))` }}
             >
               Politician Alerts
@@ -69,6 +84,36 @@ export default async function AlertsPage() {
               </span>
             </div>
             <AlertToggleButton initialSubscribed={isSubscribed} />
+          </section>
+
+          {/* Daily brief card */}
+          <section
+            className="mb-10 rounded-2xl border p-6"
+            style={{
+              borderColor: `rgb(var(--t-border) / 0.7)`,
+              backgroundColor: `rgb(var(--t-surface))`,
+            }}
+          >
+            <div className="mb-2 flex items-center gap-3">
+              <div
+                className="h-2.5 w-2.5 rounded-full"
+                style={{
+                  backgroundColor: briefSubscribed
+                    ? `rgb(var(--t-success))`
+                    : `rgb(var(--t-dim))`,
+                }}
+              />
+              <span className="text-sm font-medium" style={{ color: `rgb(var(--t-muted))` }}>
+                {briefSubscribed
+                  ? `Daily Brief on — sent to ${user.email} at 8:00 UTC`
+                  : "Daily Brief off"}
+              </span>
+            </div>
+            <p className="mb-5 text-xs" style={{ color: `rgb(var(--t-dim))` }}>
+              One morning email covering your watchlist: latest news, earnings
+              within 7 days, and recent Senate trades.
+            </p>
+            <DailyBriefToggle initialSubscribed={briefSubscribed} />
           </section>
 
           {/* How it works */}
