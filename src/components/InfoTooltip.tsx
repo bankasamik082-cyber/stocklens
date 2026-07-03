@@ -43,7 +43,7 @@ export function InfoTooltip({ text }: { text: string }) {
         onMouseLeave={() => setOpen(false)}
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
         onBlur={() => setOpen(false)}
-        className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] font-bold leading-none transition-colors cursor-help outline-none select-none"
+        className="info-tip-btn inline-flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] font-bold leading-none transition-colors cursor-help outline-none select-none"
         style={{ color: open ? `rgb(var(--t-accent))` : `rgb(var(--t-dim))` }}
         aria-label="More information"
         tabIndex={-1}

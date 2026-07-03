@@ -9,7 +9,7 @@ const ITEMS = [
   { href: "/explain",   label: "Research",  Icon: Search },
   { href: "/timeline",  label: "Timeline",  Icon: GitBranch },
   { href: "/compare",   label: "Compare",   Icon: Layers },
-  { href: "/settings",  label: "Profile",   Icon: User },
+  { href: "/profile",   label: "Profile",   Icon: User },
 ];
 
 export function MobileNav() {

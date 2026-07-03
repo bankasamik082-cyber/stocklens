@@ -221,6 +221,14 @@ body::after {
   background-size: 250px 250px;
 }
 
+/* ── Personalization: beginner mode makes metric ⓘ hints prominent ─────── */
+
+body[data-exp="beginner"] .info-tip-btn {
+  color: rgb(var(--t-accent)) !important;
+  transform: scale(1.3);
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
 /* ── User preferences: animation speed ─────────────────────────────────── */
 
 body[data-anim="fast"] *,
@@ -283,6 +291,37 @@ body[data-density="spacious"] .surface.p-4 { padding: 1.375rem; }
 *:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px rgb(var(--t-accent) / 0.5);
+}
+
+/* ── Ticker tape marquee ────────────────────────────────────────────────── */
+
+.ticker-tape {
+  overflow: hidden;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-scroll 60s linear infinite;
+  will-change: transform;
+}
+.ticker-tape:hover .ticker-track {
+  animation-play-state: paused;
+}
+.ticker-copy {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+/* Respect reduced-motion preference */
+body[data-anim="reduced"] .ticker-track {
+  animation: none;
 }
 
 /* ── Animation keyframes ────────────────────────────────────────────────── */

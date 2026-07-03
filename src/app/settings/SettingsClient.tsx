@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { useTheme, THEMES, type Theme } from "@/contexts/ThemeContext";
 import {
@@ -205,6 +206,31 @@ export function SettingsClient() {
             { id: "spacious", label: "Spacious", hint: "Extra breathing room" },
           ]}
         />
+      </section>
+
+      {/* Connected apps */}
+      <section>
+        <div className="label mb-1">Integrations</div>
+        <p className="mb-4 text-xs" style={{ color: `rgb(var(--t-muted))` }}>
+          Data sources and broker connections.
+        </p>
+        <Link
+          href="/integrations"
+          className="hover-quick-link flex items-center justify-between rounded-2xl border px-5 py-4 transition-colors"
+          style={{
+            borderColor: `rgb(var(--t-text) / 0.08)`,
+            backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
+          }}
+          data-testid="settings-integrations-link"
+        >
+          <span className="flex items-center gap-3">
+            <span style={{ color: `rgb(var(--t-accent))` }}>⧉</span>
+            <span className="text-sm font-medium" style={{ color: `rgb(var(--t-text))` }}>
+              Connected Apps
+            </span>
+          </span>
+          <span className="text-sm" style={{ color: `rgb(var(--t-muted))` }}>→</span>
+        </Link>
       </section>
 
       {/* About */}

@@ -1,13 +1,48 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { MobileNav } from "@/components/MobileNav";
 
+// Reads the cached profile (written by PersonalizationEffects / profile save)
+// for the navbar avatar without an extra network round-trip.
+function useProfileBadge(email?: string | null) {
+  const [badge, setBadge] = useState<{ avatar: string | null; name: string | null }>({
+    avatar: null,
+    name: null,
+  });
+
+  useEffect(() => {
+    const read = () => {
+      try {
+        const cached = localStorage.getItem("sl-profile");
+        if (!cached) return;
+        const p = JSON.parse(cached) as {
+          avatar?: string | null;
+          display_name?: string | null;
+          first_name?: string | null;
+        };
+        setBadge({
+          avatar: p.avatar ?? null,
+          name: p.display_name || p.first_name || null,
+        });
+      } catch {}
+    };
+    read();
+    window.addEventListener("sl-profile-updated", read);
+    return () => window.removeEventListener("sl-profile-updated", read);
+  }, []);
+
+  const initials = (badge.name || email || "?").trim().charAt(0).toUpperCase();
+  return { avatar: badge.avatar, name: badge.name, initials };
+}
+
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/portfolio", label: "Portfolio" },
   { href: "/watchlist", label: "Watchlist" },
   { href: "/compare",   label: "Compare" },
   { href: "/timeline",  label: "Timeline" },
@@ -21,6 +56,7 @@ export function Navbar({ email }: { email?: string | null }) {
   const router   = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
+  const { avatar, name, initials } = useProfileBadge(email);
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -128,14 +164,21 @@ export function Navbar({ email }: { email?: string | null }) {
               <span>⌘K</span>
             </button>
 
-            {/* Settings */}
+            {/* Profile avatar */}
             <Link
-              href="/settings"
-              className="hidden lg:flex ml-1 h-8 w-8 items-center justify-center rounded-lg transition text-sm"
-              style={{ color: `rgb(var(--t-muted))` }}
-              title="Settings"
+              href="/profile"
+              className="hidden lg:flex ml-1 h-8 w-8 items-center justify-center rounded-full border transition"
+              style={{
+                borderColor: `rgb(var(--t-accent) / 0.35)`,
+                backgroundColor: `rgb(var(--t-accent) / 0.08)`,
+                fontSize: avatar ? "1rem" : "0.75rem",
+                color: `rgb(var(--t-accent))`,
+                fontWeight: 700,
+              }}
+              title={name ? `${name} — Profile` : "Profile"}
+              data-testid="navbar-avatar"
             >
-              ⊙
+              {avatar ?? initials}
             </Link>
 
             {/* Sign out */}
