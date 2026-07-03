@@ -18,7 +18,10 @@ export default async function SettingsPage() {
             <div className="label mb-2">Configuration</div>
             <h1
               className="text-3xl font-bold tracking-tight"
-              style={{ color: `rgb(var(--t-text))` }}
+              style={{
+                color: `rgb(var(--t-text))`,
+                fontFamily: `'Clash Display', var(--font-sans), sans-serif`,
+              }}
             >
               Settings
             </h1>

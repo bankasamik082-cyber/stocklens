@@ -7,50 +7,116 @@ export function SettingsClient() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {/* Appearance */}
       <section>
-        <div className="label mb-4">Appearance</div>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="label mb-1">Appearance</div>
+        <p className="mb-5 text-xs" style={{ color: `rgb(var(--t-muted))` }}>
+          Choose a visual theme. Switching is instant.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
           {THEMES.map((t, i) => {
             const active = theme === t.id;
             return (
               <motion.button
                 key={t.id}
                 onClick={() => setTheme(t.id as Theme)}
-                initial={{ opacity: 0, y: 8 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="relative text-left rounded-xl border p-4 transition-all duration-150"
+                transition={{ delay: i * 0.05, duration: 0.2 }}
+                className="relative text-left overflow-hidden transition-all duration-200"
                 style={{
-                  borderColor: active
-                    ? `rgb(var(--t-accent) / 0.5)`
-                    : `rgb(var(--t-border) / 0.8)`,
-                  backgroundColor: active
-                    ? `rgb(var(--t-accent) / 0.06)`
-                    : `rgb(var(--t-surface))`,
+                  borderRadius: "1.25rem",
+                  border: `1px solid ${active ? t.accent + "80" : "rgba(255,255,255,0.08)"}`,
+                  backgroundColor: `rgb(var(--t-surface))`,
+                  boxShadow: active
+                    ? `0 0 0 1px ${t.accent}33, 0 8px 32px ${t.accent}18`
+                    : "none",
+                  transform: active ? "translateY(-1px)" : "none",
                 }}
+                data-testid={`theme-card-${t.id}`}
               >
-                {active && (
-                  <motion.span
-                    layoutId="theme-check"
-                    className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
+                {/* Gradient preview strip */}
+                <div
+                  className="relative h-20 w-full overflow-hidden"
+                  style={{
+                    background: `linear-gradient(135deg, ${t.bg} 0%, ${t.accent}55 100%)`,
+                  }}
+                >
+                  {/* Simulated mini card */}
+                  <div
+                    className="absolute bottom-3 right-4 w-16 h-9 rounded-xl"
                     style={{
-                      backgroundColor: `rgb(var(--t-accent))`,
-                      color: `rgb(var(--t-bg))`,
+                      backgroundColor: t.bg + "ee",
+                      border: `1px solid ${t.accent}28`,
+                    }}
+                  />
+                  {/* Accent bar */}
+                  <div
+                    className="absolute bottom-5 left-4 w-10 h-1.5 rounded-full"
+                    style={{
+                      background: `linear-gradient(90deg, ${t.accent}, ${t.accent2 ?? t.accent})`,
+                      boxShadow: `0 0 12px ${t.accent}80`,
+                    }}
+                  />
+                  {/* Dot cluster */}
+                  <div className="absolute top-3.5 left-4 flex gap-1.5">
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: t.accent, opacity: 0.9 }}
+                    />
+                    {t.accent2 && (
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: t.accent2, opacity: 0.7 }}
+                      />
+                    )}
+                  </div>
+                  {/* Name in preview */}
+                  <div
+                    className="absolute top-3 right-4 text-[9px] font-bold tracking-widest uppercase opacity-60"
+                    style={{
+                      color: t.accent,
+                      fontFamily: `'Clash Display', ui-monospace, monospace`,
                     }}
                   >
-                    ✓
-                  </motion.span>
-                )}
-                <div
-                  className="mb-1 text-sm font-semibold"
-                  style={{ color: `rgb(var(--t-text))` }}
-                >
-                  {t.label}
+                    {t.id === "liquid-glass" ? "LG" : t.id === "midnight-gold" ? "MG" : t.label.slice(0, 2).toUpperCase()}
+                  </div>
                 </div>
-                <div className="text-xs" style={{ color: `rgb(var(--t-muted))` }}>
-                  {t.description}
+
+                {/* Card body */}
+                <div className="px-4 py-3.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className="text-sm font-semibold"
+                      style={{ color: `rgb(var(--t-text))` }}
+                    >
+                      {t.label}
+                    </span>
+                    {active ? (
+                      <motion.span
+                        layoutId="theme-check"
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                        style={{
+                          backgroundColor: t.accent,
+                          color: t.bg,
+                        }}
+                      >
+                        ✓
+                      </motion.span>
+                    ) : (
+                      <span
+                        className="h-5 w-5 shrink-0 rounded-full border"
+                        style={{ borderColor: `rgba(255,255,255,0.12)` }}
+                      />
+                    )}
+                  </div>
+                  <p
+                    className="mt-1 text-[11px] leading-snug"
+                    style={{ color: `rgb(var(--t-muted))` }}
+                  >
+                    {t.description}
+                  </p>
                 </div>
               </motion.button>
             );
@@ -62,10 +128,12 @@ export function SettingsClient() {
       <section>
         <div className="label mb-4">About</div>
         <div
-          className="rounded-xl border p-5 space-y-3"
+          className="rounded-2xl border p-5 space-y-3"
           style={{
-            borderColor: `rgb(var(--t-border) / 0.7)`,
-            backgroundColor: `rgb(var(--t-surface))`,
+            borderColor: `rgba(255,255,255,0.08)`,
+            backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
+            backdropFilter: `var(--card-blur, none)`,
+            WebkitBackdropFilter: `var(--card-blur, none)`,
           }}
         >
           {[
@@ -89,9 +157,12 @@ export function SettingsClient() {
       <section>
         <div className="label mb-4">Keyboard shortcuts</div>
         <div
-          className="rounded-xl border divide-y divide-t-border/50"
+          className="rounded-2xl border overflow-hidden"
           style={{
-            borderColor: `rgb(var(--t-border) / 0.7)`,
+            borderColor: `rgba(255,255,255,0.08)`,
+            backgroundColor: `var(--card-bg, rgb(var(--t-surface)))`,
+            backdropFilter: `var(--card-blur, none)`,
+            WebkitBackdropFilter: `var(--card-blur, none)`,
           }}
         >
           {[
@@ -99,18 +170,21 @@ export function SettingsClient() {
             ["↑↓ in palette", "Navigate results"],
             ["↵ in palette", "Select result"],
             ["Esc", "Close palette / modal"],
-          ].map(([keys, desc]) => (
+          ].map(([keys, desc], i, arr) => (
             <div
               key={keys}
-              className="flex items-center justify-between px-4 py-3"
-              style={{ borderColor: `rgb(var(--t-border) / 0.5)` }}
+              className="flex items-center justify-between px-5 py-3.5"
+              style={{
+                borderBottom: i < arr.length - 1 ? `1px solid rgba(255,255,255,0.06)` : undefined,
+              }}
             >
               <span className="text-sm" style={{ color: `rgb(var(--t-muted))` }}>{desc}</span>
               <kbd
-                className="font-mono text-[11px] rounded border px-2 py-0.5"
+                className="font-mono text-[11px] rounded-lg border px-2 py-1"
                 style={{
-                  borderColor: `rgb(var(--t-border))`,
+                  borderColor: `rgba(255,255,255,0.1)`,
                   color: `rgb(var(--t-dim))`,
+                  backgroundColor: `rgba(255,255,255,0.04)`,
                 }}
               >
                 {keys}
