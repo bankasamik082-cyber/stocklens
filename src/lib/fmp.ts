@@ -1,8 +1,9 @@
-// Data layer: Finnhub (profile + financials + news) + FMP (politician trades only).
+// Data layer: Finnhub (profile + financials + news) + FMP (politician trades via senate-latest).
 //
 // FMP free tier restricts income/balance/cashflow to a handful of mega-cap demo tickers
-// (returns HTTP 402 for everything else). Profile and financial statements now come from
-// Finnhub's free tier instead. FMP is kept only for senate-trades and house-trades.
+// (returns HTTP 402 for everything else). Profile and financial statements come from
+// Finnhub's free tier. FMP is kept only for senate-trades via /stable/senate-latest
+// (market-wide feed — the per-symbol efts.senate.gov domain is dead/NXDOMAIN).
 //
 // Finnhub financials-reported returns XBRL-labeled arrays — labels vary by company, so
 // we do prefix/substring matching rather than fixed field names.
@@ -88,6 +89,27 @@ interface FhProfile2 {
   finnhubIndustry: string;
   weburl: string;
   logo: string;
+  description?: string;
+  gicsSector?: string;
+  sector?: string;
+}
+
+interface FhMetrics {
+  metric: {
+    netProfitMarginAnnual?: number;
+    revenuePerShareAnnual?: number;
+    operatingCashFlowPerShareAnnual?: number;
+    freeCashFlowPerShareAnnual?: number;
+    marketCapitalization?: number;
+    "52WeekHigh"?: number;
+    "52WeekLow"?: number;
+    beta?: number;
+  };
+  series?: {
+    annual?: {
+      netIncomePerShare?: Array<{ period: string; v: number }>;
+    };
+  };
 }
 
 function findRevenue(ic: FhXbrlItem[]): number | null {
@@ -98,6 +120,7 @@ function findRevenue(ic: FhXbrlItem[]): number | null {
     "revenues",
     "revenue",
     "net sales",
+    "total net sales",
     "sales",
   ];
   for (const p of prefixes) {
@@ -115,6 +138,19 @@ function findRevenue(ic: FhXbrlItem[]): number | null {
 }
 
 function findNetIncome(ic: FhXbrlItem[]): number | null {
+  // Try exact "net income" first, then "net income (loss)" variants
+  const patterns = [
+    /^net income$/i,
+    /^net income \(loss\)$/i,
+    /^net income \/ \(loss\)$/i,
+    /^net income attributable/i,
+    /^net (earnings|profit)/i,
+  ];
+  for (const pat of patterns) {
+    const item = ic.find((x) => x.value !== null && pat.test(x.label.trim()));
+    if (item) return item.value as number;
+  }
+  // Broader fallback: starts with "net income"
   const item = ic.find(
     (x) => x.value !== null && x.label.toLowerCase().trimStart().startsWith("net income")
   );
@@ -137,6 +173,7 @@ function findOpCashFlow(cf: FhXbrlItem[]): number | null {
     "net cash from operating",
     "cash provided by operating",
     "net cash generated from operating",
+    "operating activities",
   ];
   for (const kw of keywords) {
     const item = cf.find(
@@ -159,6 +196,22 @@ function findGrossProfit(ic: FhXbrlItem[]): number | null {
       !x.label.toLowerCase().includes("ratio")
   );
   return fallback ? (fallback.value as number) : null;
+}
+
+// ---- Sector mapping (Finnhub only provides finnhubIndustry, not a broad sector) ----
+
+function mapIndustryToSector(industry: string): string {
+  const i = industry.toLowerCase();
+  if (/semiconductor|software|hardware|technology|internet|computer|telecom|cloud|data|chip|electronic/i.test(industry)) return "Technology";
+  if (/bank|capital market|insurance|financial|invest|asset management|brokerage|payment/i.test(industry)) return "Finance";
+  if (/pharma|biotech|medical|health|hospital|clinical|therapeutic/i.test(industry)) return "Healthcare";
+  if (/oil|gas|energy|petroleum|coal|renewable/i.test(industry)) return "Energy";
+  if (/food|beverage|retail|consumer|restaurant|hotel|leisure|media|entertainment|apparel|fashion/i.test(industry)) return "Consumer";
+  if (/aerospace|defense|machinery|transportation|logistics|construction|industrial|manufactur/i.test(industry)) return "Industrial";
+  if (/real estate|reit|property/i.test(industry)) return "Real Estate";
+  if (/utility|utilities|electric|water|natural gas distribution/i.test(industry)) return "Utilities";
+  if (/material|mining|chemical|metal|steel|aluminum/i.test(industry)) return "Materials";
+  return industry;
 }
 
 // ---- Exported types (shape kept stable so callers don't need changes) ----
@@ -226,12 +279,16 @@ export interface FinnhubFinancials {
 export async function getProfile(ticker: string): Promise<FmpProfile | null> {
   const data = await fhGet<FhProfile2>(`/stock/profile2?symbol=${ticker}`);
   if (!data || !data.name) return null;
+
+  const industry = data.finnhubIndustry || "";
+  const mappedSector = data.gicsSector || data.sector || mapIndustryToSector(industry);
+
   return {
     symbol: ticker,
     companyName: data.name,
-    description: "",
-    sector: data.finnhubIndustry || "",
-    industry: data.finnhubIndustry || "",
+    description: data.description || "",
+    sector: mappedSector,
+    industry: mappedSector !== industry ? industry : "",
     marketCap: (data.marketCapitalization || 0) * 1_000_000, // Finnhub gives in millions
     price: 0,
     currency: data.currency || "USD",
@@ -246,6 +303,13 @@ export async function getCeo(ticker: string): Promise<string | null> {
   return data?.[0]?.ceo || null;
 }
 
+// Company description from FMP (works for mega-cap tickers on the free plan).
+// Returns empty string if not available — callers fall back to AI generation.
+export async function getCompanyDescription(ticker: string): Promise<string> {
+  const data = await fmpGet<Array<{ description?: string }>>(`/profile?symbol=${ticker}`);
+  return data?.[0]?.description?.trim() || "";
+}
+
 // ---- Finnhub: financial statements (one API call, three datasets) ----
 // Use getFinancials() in the analyze route to avoid 3 separate calls.
 
@@ -258,27 +322,63 @@ export async function getFinancials(ticker: string): Promise<FinnhubFinancials> 
     return { income: null, balance: null, cashflow: null };
   }
 
-  const report = raw.data[0].report;
-  const { ic, bs, cf } = report;
+  // Try up to the first 3 report entries so companies with sparse first-entry data still yield values.
+  let income: FmpIncome | null = null;
+  let balance: FmpBalance | null = null;
+  let cashflow: FmpCashFlow | null = null;
 
-  const revenue = findRevenue(ic);
-  const netIncome = findNetIncome(ic);
+  for (const entry of raw.data.slice(0, 3)) {
+    if (!entry.report) continue;
+    const { ic, bs, cf } = entry.report;
 
-  const grossProfit = findGrossProfit(ic);
+    if (!income) {
+      const revenue = findRevenue(ic);
+      const netIncome = findNetIncome(ic);
+      const grossProfit = findGrossProfit(ic);
+      if (revenue !== null || netIncome !== null) {
+        income = { date: "", revenue: revenue ?? 0, netIncome: netIncome ?? 0, grossProfit: grossProfit ?? 0 };
+      }
+    }
 
-  const income: FmpIncome | null =
-    revenue !== null || netIncome !== null
-      ? { date: "", revenue: revenue ?? 0, netIncome: netIncome ?? 0, grossProfit: grossProfit ?? 0 }
-      : null;
+    if (!balance) {
+      const totalDebt = findTotalDebt(bs);
+      balance = { date: "", totalDebt, cashAndCashEquivalents: 0 };
+    }
 
-  const totalDebt = findTotalDebt(bs);
-  const balance: FmpBalance = { date: "", totalDebt, cashAndCashEquivalents: 0 };
+    if (!cashflow) {
+      const opCF = findOpCashFlow(cf);
+      if (opCF !== null) {
+        cashflow = { date: "", operatingCashFlow: opCF, freeCashFlow: 0 };
+      }
+    }
 
-  const opCF = findOpCashFlow(cf);
-  const cashflow: FmpCashFlow | null =
-    opCF !== null ? { date: "", operatingCashFlow: opCF, freeCashFlow: 0 } : null;
+    if (income && balance && cashflow) break;
+  }
 
   return { income, balance, cashflow };
+}
+
+// ---- Finnhub: basic metrics (for screener and financial fallbacks) ----
+
+export interface FinnhubMetricsSummary {
+  netProfitMarginAnnual: number | null;
+  revenuePerShareAnnual: number | null;
+  operatingCashFlowPerShareAnnual: number | null;
+  marketCapM: number | null; // in millions
+}
+
+export async function getMetrics(ticker: string): Promise<FinnhubMetricsSummary> {
+  const raw = await fhGet<FhMetrics>(`/stock/metric?symbol=${ticker}&metric=all`);
+  if (!raw?.metric) {
+    return { netProfitMarginAnnual: null, revenuePerShareAnnual: null, operatingCashFlowPerShareAnnual: null, marketCapM: null };
+  }
+  const m = raw.metric;
+  return {
+    netProfitMarginAnnual: m.netProfitMarginAnnual ?? null,
+    revenuePerShareAnnual: m.revenuePerShareAnnual ?? null,
+    operatingCashFlowPerShareAnnual: m.operatingCashFlowPerShareAnnual ?? null,
+    marketCapM: m.marketCapitalization ?? null,
+  };
 }
 
 // ---- Finnhub: news ----
@@ -476,78 +576,72 @@ export async function getPeers(ticker: string): Promise<string[]> {
   return data.filter((p) => p !== ticker).slice(0, 10);
 }
 
-// ---- Senate eFD (Electronic Financial Disclosures) — free, no key ----
-// Endpoint: https://efts.senate.gov/LATEST/search.json
-// Returns PTR (Periodic Transaction Reports) filings in ElasticSearch format.
+// ---- FMP: Senate trades via /stable/senate-latest (market-wide feed, free plan) ----
+// The eFTS Senate search domain (efts.senate.gov) is dead/NXDOMAIN.
+// FMP's senate-latest endpoint returns all recent Senate PTR filings — we cache
+// the full response for 15 minutes and filter client-side by ticker.
 
-interface SenateEftsHit {
-  _source: {
-    first_name?: string;
-    last_name?: string;
-    transaction_date?: string;
-    asset_description?: string;
-    asset_type?: string;
-    type?: string;
-    amount?: string;
-    comment?: string;
-    senator_id?: string;
-    filing_type?: string;
-    filing_date?: string;
-  };
+interface FmpSenateLatest {
+  symbol?: string;
+  firstName?: string;
+  lastName?: string;
+  office?: string;
+  transactionDate?: string;
+  disclosureDate?: string;
+  type?: string;
+  amount?: string;
+  assetType?: string;
+  party?: string;
 }
 
-interface SenateEftsResponse {
-  hits?: {
-    hits?: SenateEftsHit[];
+let _senateLatestCache: { data: FmpSenateLatest[]; at: number } | null = null;
+const SENATE_CACHE_MS = 15 * 60 * 1000; // 15 minutes
+
+async function fetchSenateLatest(): Promise<FmpSenateLatest[]> {
+  if (_senateLatestCache && Date.now() - _senateLatestCache.at < SENATE_CACHE_MS) {
+    return _senateLatestCache.data;
+  }
+  // Fetch two pages to get broader coverage; free tier caps each page at 25
+  const [page0, page1] = await Promise.all([
+    fmpGet<FmpSenateLatest[]>(`/senate-latest?page=0&limit=25`),
+    fmpGet<FmpSenateLatest[]>(`/senate-latest?page=1&limit=25`),
+  ]);
+  const combined = [
+    ...(Array.isArray(page0) ? page0 : []),
+    ...(Array.isArray(page1) ? page1 : []),
+  ];
+  _senateLatestCache = { data: combined, at: Date.now() };
+  return combined;
+}
+
+function senateLatestToTrade(t: FmpSenateLatest): FmpPoliticianTrade {
+  return {
+    firstName: t.firstName,
+    lastName: t.lastName,
+    office: t.office,
+    representative: [t.firstName, t.lastName].filter(Boolean).join(" ") || t.office,
+    transactionDate: t.transactionDate,
+    dateRecieved: t.disclosureDate,
+    type: t.type,
+    amount: t.amount,
+    party: t.party,
+    symbol: t.symbol,
   };
-  // Some API versions return a top-level data array instead
-  data?: Array<SenateEftsHit["_source"]>;
 }
 
 async function getSenateTrades(ticker: string): Promise<FmpPoliticianTrade[]> {
-  try {
-    const to = new Date().toISOString().slice(0, 10);
-    const from = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    // Wrap ticker in quotes for exact-match search within asset description.
-    const q = encodeURIComponent(`"${ticker}"`);
-    const url = `https://efts.senate.gov/LATEST/search.json?q=${q}&dateRange=custom&fromDate=${from}&toDate=${to}`;
-    const res = await fetch(url, {
-      cache: "no-store",
-      headers: { "User-Agent": "StockLens/1.0 (research tool)" },
-    });
-    if (!res.ok) return [];
-    const data = (await res.json()) as SenateEftsResponse;
-
-    let sources: Array<SenateEftsHit["_source"]> = [];
-    if (data?.hits?.hits?.length) {
-      sources = data.hits.hits.map((h) => h._source);
-    } else if (Array.isArray(data?.data)) {
-      sources = data.data;
-    }
-
-    // Filter to Stock/security asset types only; skip cash, land, etc.
-    return sources
-      .filter((s) => {
-        const at = (s.asset_type || "").toLowerCase();
-        if (!at) return true; // include if unknown
-        return at.includes("stock") || at.includes("equit") || at.includes("securit") || at.includes("option");
-      })
-      .map((s) => ({
-        firstName: s.first_name,
-        lastName: s.last_name,
-        representative: [s.first_name, s.last_name].filter(Boolean).join(" ") || undefined,
-        transactionDate: s.transaction_date,
-        type: s.type,
-        amount: s.amount,
-        party: undefined, // not provided by Senate eFTS
-        symbol: ticker,
-      }));
-  } catch {
-    return [];
-  }
+  const all = await fetchSenateLatest();
+  const tickerUpper = ticker.toUpperCase();
+  return all
+    .filter(
+      (t) =>
+        t.symbol?.toUpperCase() === tickerUpper &&
+        (!t.assetType || /stock|equit|securit|option/i.test(t.assetType))
+    )
+    .map(senateLatestToTrade);
 }
 
-// ---- Politician trades — Senate eFD only (House requires paid data or HTML scraping) ----
+// ---- Politician trades (Senate via FMP, house always empty) ----
 
 export async function getPoliticianTrades(ticker: string) {
   const senate = await getSenateTrades(ticker);
@@ -557,12 +651,7 @@ export async function getPoliticianTrades(ticker: string) {
   };
 }
 
-// ---- Recent Senate trades across a basket of popular tickers ----
-// Used by the dashboard intelligence card and the daily brief email.
-
-const POPULAR_DISCLOSURE_TICKERS = [
-  "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "JPM",
-];
+// ---- Recent Senate trades across all tickers (from the cached market-wide feed) ----
 
 export interface RecentSenateTrade {
   name: string;
@@ -574,29 +663,35 @@ export interface RecentSenateTrade {
 
 export async function getRecentSenateTrades(
   limit = 3,
-  tickers: string[] = POPULAR_DISCLOSURE_TICKERS
+  tickers?: string[]
 ): Promise<RecentSenateTrade[]> {
-  const results = await Promise.all(
-    tickers.map((t) => getSenateTrades(t).catch(() => []))
-  );
-  const flat = results
-    .flat()
-    .filter((t) => t.transactionDate)
+  const all = await fetchSenateLatest();
+
+  const filtered = all
+    .filter((t) => {
+      if (!t.symbol || !/^[A-Z.\-]{1,10}$/.test(t.symbol)) return false;
+      if (!t.transactionDate && !t.disclosureDate) return false;
+      if (tickers && !tickers.includes(t.symbol.toUpperCase())) return false;
+      if (t.assetType && !/stock|equit|securit|option/i.test(t.assetType)) return false;
+      return true;
+    })
     .map((t) => ({
       name:
-        t.representative ||
         [t.firstName, t.lastName].filter(Boolean).join(" ") ||
+        t.office ||
         "Unknown senator",
-      ticker: t.symbol || "",
+      ticker: t.symbol!,
       type: t.type || "Unknown",
       amount: t.amount || "Not disclosed",
-      date: t.transactionDate!,
+      date: (t.transactionDate || t.disclosureDate)!,
     }));
-  flat.sort((a, b) => (a.date < b.date ? 1 : -1));
-  // De-dupe identical name+ticker+date+type rows (eFD often repeats filings)
+
+  filtered.sort((a, b) => (a.date < b.date ? 1 : -1));
+
+  // De-dupe identical name+ticker+date+type rows
   const seen = new Set<string>();
   const out: RecentSenateTrade[] = [];
-  for (const t of flat) {
+  for (const t of filtered) {
     const key = `${t.name}|${t.ticker}|${t.date}|${t.type}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -604,6 +699,13 @@ export async function getRecentSenateTrades(
     if (out.length >= limit) break;
   }
   return out;
+}
+
+// ---- Latest Senate trades (market-wide, used by intelligence hub) ----
+// Uses the same cached senate-latest feed.
+
+export async function getLatestSenateTrades(limit = 5): Promise<RecentSenateTrade[]> {
+  return getRecentSenateTrades(limit);
 }
 
 // ---- Finnhub: real-time quote ----
@@ -628,48 +730,6 @@ export async function getQuote(ticker: string): Promise<Quote | null> {
   const q = await fhGet<FhQuote>(`/quote?symbol=${ticker}`);
   if (!q || typeof q.c !== "number" || q.c === 0) return null;
   return { price: q.c, change: q.d ?? 0, changePercent: q.dp ?? 0 };
-}
-
-// ---- FMP: latest Senate trades across ALL tickers (free tier) ----
-// /stable/senate-latest returns the most recent PTR filings market-wide,
-// newest first — unlike the per-symbol endpoint, it works on the free plan.
-
-interface FmpSenateLatest {
-  symbol?: string;
-  firstName?: string;
-  lastName?: string;
-  office?: string;
-  transactionDate?: string;
-  disclosureDate?: string;
-  type?: string;
-  amount?: string;
-  assetType?: string;
-}
-
-export async function getLatestSenateTrades(limit = 5): Promise<RecentSenateTrade[]> {
-  // free tier caps limit at 25
-  const data = await fmpGet<FmpSenateLatest[]>(`/senate-latest?page=0&limit=25`);
-  if (!Array.isArray(data) || data.length === 0) return [];
-
-  return data
-    .filter(
-      (t) =>
-        t.symbol &&
-        /^[A-Z.\-]{1,10}$/.test(t.symbol) &&
-        (t.transactionDate || t.disclosureDate) &&
-        (!t.assetType || /stock|equit|securit|option/i.test(t.assetType))
-    )
-    .map((t) => ({
-      name:
-        [t.firstName, t.lastName].filter(Boolean).join(" ") ||
-        t.office ||
-        "Unknown senator",
-      ticker: t.symbol!,
-      type: t.type || "Unknown",
-      amount: t.amount || "Not disclosed",
-      date: (t.transactionDate || t.disclosureDate)!,
-    }))
-    .slice(0, limit);
 }
 
 // ---- Finnhub: earnings calendar ----

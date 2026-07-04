@@ -47,7 +47,8 @@ export async function middleware(request: NextRequest) {
     path.startsWith("/watchlist") ||
     path.startsWith("/profile") ||
     path.startsWith("/portfolio") ||
-    path.startsWith("/integrations");
+    path.startsWith("/integrations") ||
+    path.startsWith("/screener");
 
   if (!user && isProtected) {
     const url = request.nextUrl.clone();

@@ -5,6 +5,7 @@ import {
   getFinancials,
   getNews,
   getPoliticianTrades,
+  getCompanyDescription,
   getAnalystRecommendations,
   getInsiderTransactions,
   getPeers,
@@ -107,7 +108,7 @@ export async function POST(req: Request) {
 
   try {
     // Fetch all data sources in parallel.
-    const [profile, financials, politician, cik, analyst, insider, peers] = await Promise.all([
+    const [profile, financials, politician, cik, analyst, insider, peers, fmpDescription] = await Promise.all([
       need.profile ? getProfile(ticker) : Promise.resolve(null),
       need.financials
         ? getFinancials(ticker)
@@ -119,6 +120,8 @@ export async function POST(req: Request) {
       need.analyst ? getAnalystRecommendations(ticker) : Promise.resolve(null),
       need.insider ? getInsiderTransactions(ticker) : Promise.resolve(null),
       need.profile ? getPeers(ticker) : Promise.resolve([] as string[]),
+      // Fetch FMP description for company overview (works on free tier for mega-caps)
+      sections.includes("companyOverview") ? getCompanyDescription(ticker) : Promise.resolve(""),
     ]);
 
     const { income, balance, cashflow } = financials;
@@ -173,9 +176,9 @@ export async function POST(req: Request) {
 
     if (sections.includes("companyOverview")) {
       report.companyOverview = {
-        whatItDoes: "",
+        whatItDoes: fmpDescription || "",
         sector: profile?.sector || "Data not available",
-        industry: profile?.industry || "Data not available",
+        industry: profile?.industry || "",
         marketCap: marketCapStr,
       };
       sourcesBySection.companyOverview = [finnhubProfileSource, ...edgarSources];
@@ -236,8 +239,8 @@ export async function POST(req: Request) {
       };
       sourcesBySection.politicianTrading = [
         {
-          label: "U.S. Senate eFD — Periodic Transaction Reports",
-          url: `https://efts.senate.gov/LATEST/search.json?q=%22${ticker}%22`,
+          label: "FMP — Senate Disclosures",
+          url: `https://financialmodelingprep.com/financial-statements/senate-disclosure`,
         },
       ];
     }
@@ -268,6 +271,9 @@ export async function POST(req: Request) {
     }
 
     const narrativeReq = toNarrativeRequest(sections);
+    // Skip AI-generated company description if we already have one from FMP
+    if (fmpDescription) narrativeReq.whatItDoes = false;
+
     const wantsNarrative =
       narrativeReq.whatItDoes ||
       narrativeReq.financialScore ||
@@ -280,7 +286,7 @@ export async function POST(req: Request) {
         {
           ticker,
           companyName: profile?.companyName || ticker,
-          description: profile?.description || "",
+          description: fmpDescription || profile?.description || "",
           sector: profile?.sector || "Unknown",
           industry: profile?.industry || "Unknown",
           marketCap: marketCapStr,
