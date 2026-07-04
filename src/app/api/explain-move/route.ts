@@ -138,8 +138,8 @@ export async function POST(req: Request) {
     ...(nearbyTrades.length > 0
       ? [
           {
-            label: "U.S. Senate eFD — Periodic Transaction Reports",
-            url: `https://efts.senate.gov/LATEST/search.json?q=%22${ticker}%22`,
+            label: "FMP — Senate Disclosures",
+            url: `https://financialmodelingprep.com/financial-statements/senate-disclosure`,
           },
         ]
       : []),

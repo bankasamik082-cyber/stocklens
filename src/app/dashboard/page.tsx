@@ -45,7 +45,11 @@ export default async function DashboardPage() {
     !profileResult.error && profileResult.data?.first_name
       ? profileResult.data.first_name
       : null;
-  const rawName = profileFirstName ?? user.email?.split("@")[0] ?? "there";
+  // Fallback: extract only the alphabetic segment before the first dot, digit, or @
+  // so "banka.samik082@gmail.com" → "Banka" rather than "Banka.samik082"
+  const emailPrefix = user.email?.split("@")[0] ?? "there";
+  const cleanedEmailPrefix = emailPrefix.match(/^[a-zA-Z]+/)?.[0] ?? "there";
+  const rawName = profileFirstName ?? cleanedEmailPrefix;
   const firstName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
   const investorType =
     (!profileResult.error && profileResult.data?.investor_type) || null;

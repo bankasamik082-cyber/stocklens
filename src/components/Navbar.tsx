@@ -42,6 +42,7 @@ function useProfileBadge(email?: string | null) {
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/screener",  label: "Screener" },
   { href: "/portfolio", label: "Portfolio" },
   { href: "/watchlist", label: "Watchlist" },
   { href: "/compare",   label: "Compare" },

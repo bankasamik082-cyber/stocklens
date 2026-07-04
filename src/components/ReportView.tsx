@@ -243,14 +243,16 @@ function renderSection(id: SectionId, report: GeneratedReport) {
     case "companyOverview": {
       const o = report.companyOverview;
       if (!o) return <Empty />;
+      // Only show Industry if it's populated and different from Sector
+      const showIndustry = o.industry && o.industry !== o.sector;
       return (
         <div className="space-y-4">
           <p className="text-sm leading-relaxed" style={{ color: `rgb(var(--t-muted))` }}>
             {o.whatItDoes || "Data is limited."}
           </p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            <Stat label="Sector" value={o.sector} />
-            <Stat label="Industry" value={o.industry} />
+          <div className={`grid gap-2 ${showIndustry ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+            <Stat label="Sector" value={o.sector || "N/A"} />
+            {showIndustry && <Stat label="Industry" value={o.industry} />}
             <Stat label="Market cap" value={o.marketCap} />
           </div>
         </div>

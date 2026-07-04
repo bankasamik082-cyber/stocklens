@@ -4,29 +4,43 @@ import { useEffect, useState } from "react";
 
 interface TapeQuote {
   ticker: string;
-  price: number;
+  name?: string;
+  price: number | null;
   changePercent: number;
 }
 
 function TapeItem({ q }: { q: TapeQuote }) {
   const up = q.changePercent >= 0;
+  const hasPrice = q.price !== null && q.price > 0;
   return (
     <span className="inline-flex items-center gap-2 px-4">
-      <span
-        className="font-mono text-[11px] font-bold"
-        style={{ color: `rgb(var(--t-text))` }}
-      >
-        {q.ticker}
+      <span className="inline-flex flex-col leading-none">
+        <span
+          className="font-mono text-[11px] font-bold"
+          style={{ color: `rgb(var(--t-text))` }}
+        >
+          {q.ticker}
+        </span>
+        {q.name && (
+          <span
+            className="text-[9px] truncate max-w-[72px]"
+            style={{ color: `rgb(var(--t-dim))` }}
+          >
+            {q.name}
+          </span>
+        )}
       </span>
       <span className="font-mono text-[11px]" style={{ color: `rgb(var(--t-muted))` }}>
-        ${q.price.toFixed(2)}
+        {hasPrice ? `$${q.price!.toFixed(2)}` : "—"}
       </span>
-      <span
-        className="font-mono text-[11px] font-semibold"
-        style={{ color: up ? `rgb(var(--t-success))` : `rgb(var(--t-danger))` }}
-      >
-        {up ? "▲" : "▼"} {up ? "+" : ""}{q.changePercent.toFixed(2)}%
-      </span>
+      {hasPrice && (
+        <span
+          className="font-mono text-[11px] font-semibold"
+          style={{ color: up ? `rgb(var(--t-success))` : `rgb(var(--t-danger))` }}
+        >
+          {up ? "▲" : "▼"} {up ? "+" : ""}{q.changePercent.toFixed(2)}%
+        </span>
+      )}
       <span aria-hidden style={{ color: `rgb(var(--t-dim))` }}>·</span>
     </span>
   );
@@ -43,9 +57,6 @@ export function TickerTape() {
         .then((d) => {
           if (cancelled) return;
           const next = (d.quotes ?? []) as TapeQuote[];
-          // A transient error or empty refresh must never unmount a running
-          // tape, and identical data must not re-render (which could disturb
-          // the CSS animation mid-loop).
           setQuotes((prev) => {
             if (next.length === 0 && prev.length > 0) return prev;
             return JSON.stringify(next) === JSON.stringify(prev) ? prev : next;
@@ -70,7 +81,7 @@ export function TickerTape() {
     <div
       className="ticker-tape"
       style={{
-        height: 36,
+        height: 40,
         backgroundColor: `var(--card-bg, rgb(var(--t-card)))`,
         borderTop: `1px solid rgb(var(--t-text) / 0.06)`,
         borderBottom: `1px solid rgb(var(--t-text) / 0.06)`,
