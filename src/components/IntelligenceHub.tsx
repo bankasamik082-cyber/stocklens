@@ -233,33 +233,28 @@ function MarketSummaryCard() {
   );
 }
 
-function UpcomingEarningsCard({ hasWatchlist }: { hasWatchlist: boolean }) {
+function UpcomingEarningsCard() {
   const [earnings, setEarnings] = useState<UpcomingEarning[] | null>(null);
 
   useEffect(() => {
-    if (!hasWatchlist) { setEarnings([]); return; }
     let cancelled = false;
     fetch("/api/watchlist/upcoming-earnings")
       .then((r) => r.json())
       .then((d) => { if (!cancelled) setEarnings(d.earnings ?? []); })
       .catch(() => { if (!cancelled) setEarnings([]); });
     return () => { cancelled = true; };
-  }, [hasWatchlist]);
+  }, []);
 
   return (
     <CardShell icon={<CalendarClock size={14} strokeWidth={2.2} />} title="Upcoming Earnings">
-      {!hasWatchlist ? (
-        <p className="text-xs" style={{ color: `rgb(var(--t-dim))` }}>
-          Add stocks to your watchlist to track their earnings dates.
-        </p>
-      ) : earnings === null ? (
+      {earnings === null ? (
         <div className="space-y-2">
           <div className="skeleton h-8 w-full" />
           <div className="skeleton h-8 w-full" />
         </div>
       ) : earnings.length === 0 ? (
         <p className="text-xs" style={{ color: `rgb(var(--t-dim))` }}>
-          No earnings scheduled for your watchlist in the next 45 days.
+          No notable earnings scheduled in the next 45 days.
         </p>
       ) : (
         <div className="space-y-2">
@@ -363,7 +358,7 @@ export function IntelligenceHub({ hasWatchlist }: { hasWatchlist: boolean }) {
       <WatchlistStrip hasWatchlist={hasWatchlist} />
       <div className="grid gap-4 md:grid-cols-3">
         <MarketSummaryCard />
-        <UpcomingEarningsCard hasWatchlist={hasWatchlist} />
+        <UpcomingEarningsCard />
         <PoliticalTradesCard />
       </div>
     </div>

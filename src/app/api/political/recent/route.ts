@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getRecentSenateTrades, type RecentSenateTrade } from "@/lib/fmp";
+import {
+  getLatestSenateTrades,
+  getRecentSenateTrades,
+  type RecentSenateTrade,
+} from "@/lib/fmp";
 
-// Senate eFD full-text search is slow-ish; cache per instance for 15 min.
+const SHOW = 5;
+
+// Cache per instance for 15 min — filings only change a few times a day.
 let cached: { at: number; trades: RecentSenateTrade[] } | null = null;
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
@@ -17,7 +23,14 @@ export async function GET() {
     return NextResponse.json({ trades: cached.trades, cached: true });
   }
 
-  const trades = await getRecentSenateTrades(3);
-  cached = { at: Date.now(), trades };
+  // Market-wide latest Senate filings (FMP), regardless of ticker
+  let trades = await getLatestSenateTrades(SHOW).catch(() => [] as RecentSenateTrade[]);
+
+  // Graceful fallback: per-ticker Senate eFD sweep over popular tickers
+  if (trades.length === 0) {
+    trades = await getRecentSenateTrades(3).catch(() => [] as RecentSenateTrade[]);
+  }
+
+  if (trades.length > 0) cached = { at: Date.now(), trades };
   return NextResponse.json({ trades });
 }

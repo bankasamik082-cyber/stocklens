@@ -630,6 +630,48 @@ export async function getQuote(ticker: string): Promise<Quote | null> {
   return { price: q.c, change: q.d ?? 0, changePercent: q.dp ?? 0 };
 }
 
+// ---- FMP: latest Senate trades across ALL tickers (free tier) ----
+// /stable/senate-latest returns the most recent PTR filings market-wide,
+// newest first — unlike the per-symbol endpoint, it works on the free plan.
+
+interface FmpSenateLatest {
+  symbol?: string;
+  firstName?: string;
+  lastName?: string;
+  office?: string;
+  transactionDate?: string;
+  disclosureDate?: string;
+  type?: string;
+  amount?: string;
+  assetType?: string;
+}
+
+export async function getLatestSenateTrades(limit = 5): Promise<RecentSenateTrade[]> {
+  // free tier caps limit at 25
+  const data = await fmpGet<FmpSenateLatest[]>(`/senate-latest?page=0&limit=25`);
+  if (!Array.isArray(data) || data.length === 0) return [];
+
+  return data
+    .filter(
+      (t) =>
+        t.symbol &&
+        /^[A-Z.\-]{1,10}$/.test(t.symbol) &&
+        (t.transactionDate || t.disclosureDate) &&
+        (!t.assetType || /stock|equit|securit|option/i.test(t.assetType))
+    )
+    .map((t) => ({
+      name:
+        [t.firstName, t.lastName].filter(Boolean).join(" ") ||
+        t.office ||
+        "Unknown senator",
+      ticker: t.symbol!,
+      type: t.type || "Unknown",
+      amount: t.amount || "Not disclosed",
+      date: (t.transactionDate || t.disclosureDate)!,
+    }))
+    .slice(0, limit);
+}
+
 // ---- Finnhub: earnings calendar ----
 
 interface FhEarningsCalendar {
@@ -668,15 +710,16 @@ export async function getUpcomingEarnings(
   );
   const out: UpcomingEarnings[] = [];
   results.forEach((r, i) => {
-    const first = r?.earningsCalendar?.[0];
-    if (first?.date) {
-      out.push({
-        ticker: tickers[i],
-        date: first.date,
-        hour: first.hour === "bmo" ? "BMO" : first.hour === "amc" ? "AMC" : "",
-        epsEstimate: first.epsEstimate ?? null,
-      });
-    }
+    const entries = (r?.earningsCalendar ?? []).filter((e) => e.date);
+    if (entries.length === 0) return;
+    // earliest upcoming report, regardless of response ordering
+    const first = entries.reduce((a, b) => (a.date <= b.date ? a : b));
+    out.push({
+      ticker: tickers[i],
+      date: first.date,
+      hour: first.hour === "bmo" ? "BMO" : first.hour === "amc" ? "AMC" : "",
+      epsEstimate: first.epsEstimate ?? null,
+    });
   });
   out.sort((a, b) => (a.date > b.date ? 1 : -1));
   return out;
