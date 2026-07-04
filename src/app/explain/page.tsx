@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Navbar } from "@/components/Navbar";
@@ -34,7 +35,9 @@ export default async function ExplainPage() {
           </p>
         </div>
 
-        <ExplainClient />
+        <Suspense fallback={null}>
+          <ExplainClient />
+        </Suspense>
       </main>
     </div>
   );

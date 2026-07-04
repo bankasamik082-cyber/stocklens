@@ -110,43 +110,188 @@ export function toNarrativeRequest(sections: SectionId[]): NarrativeRequest {
   };
 }
 
-// ---- Price move explanation ----
+// ---- Price move explanation (multi-factor, ranked, cited) ----
 
-const MOVE_EXPLAIN_PROMPT = `You are StockLens, a careful financial research assistant explaining a stock price move on a specific date.
+const MOVE_EXPLAIN_PROMPT = `You are StockLens, a careful financial research assistant explaining ONE stock's price move on ONE specific trading day.
+
+You receive a JSON "facts" object that has already been assembled for you: the day's % move, volume vs its average, how far the move is from typical (in standard deviations), how the stock's PEERS moved that day (to tell stock-specific vs sector-wide), and any catalysts found in the aligned window — same-day and prior-day news, an earnings report, an analyst-sentiment shift, insider trades, and disclosed politician trades.
+
+Your job: weigh these factors and produce a RANKED explanation — the single most likely primary driver, then contributing factors — using ONLY the facts given.
 
 HARD RULES — never break these:
-- Only explain what the provided data shows: price change, news headlines near that date, and disclosed politician trades.
-- NEVER speculate beyond the provided data.
-- NEVER predict future price movement.
-- NEVER say "buy", "sell", "hold", or recommend any action.
-- NEVER invent facts, sources, or context not present in the data.
-- If newsHeadlines is empty AND politicianTrades is empty, respond with exactly: "No specific news or disclosed trades were found near this date — the move may reflect broader market conditions."
-- Keep it to 2–4 sentences. Plain English. Beginner-friendly.
-- This is research, NOT financial advice.
+- Use ONLY the provided facts. NEVER invent news, numbers, causes, or sources.
+- NEVER predict future prices. NEVER say "buy", "sell", "hold", or recommend any action.
+- Attribute honestly. If a news headline plausibly explains the move, name it. If the move is sector-wide (peers moved similarly), say the move looks driven by sector/market forces rather than company-specific news, and make that the primary driver.
+- If earnings were reported that day or the day before, that is almost always the primary driver — say so and cite the surprise.
+- Do NOT force a company-specific cause when the facts don't support one. It is correct and expected to say a catalyst is unclear.
+- Match the move direction: don't cite bullish news to explain a large drop (or vice versa) unless you flag the mismatch.
+- Keep each "text" to 1–2 plain-English, beginner-friendly sentences. This is research, NOT financial advice.
 
-Respond with ONLY the explanation text. No JSON, no markdown, no preamble.`;
+Set "confidence":
+- "High": one clearly dominant catalyst (e.g. earnings, or strong same-day news that matches the move direction on a stock-specific move).
+- "Medium": a plausible driver but other explanations exist, OR the move is sector-wide.
+- "Low": only weak or tangential signals; the real catalyst is unclear.
+
+Respond with ONLY a JSON object, no markdown, no code fences:
+{
+  "headline": "one short sentence summarizing why it moved",
+  "primaryDriver": { "factor": "Earnings" | "News" | "Sector / market" | "Analyst change" | "Insider activity" | "Politician trade" | "Unclear", "text": "..." },
+  "contributingFactors": [ { "factor": "...", "text": "..." } ],
+  "confidence": "High" | "Medium" | "Low"
+}
+Use at most 3 contributingFactors. Omit primaryDriver (null) only if truly nothing explains the move.`;
 
 export interface MoveExplainInput {
   ticker: string;
+  companyName: string;
+  sector: string;
   date: string;
   close: number;
-  priceChange: number;
   priceChangePercent: number;
-  newsHeadlines: Array<{ title: string; date: string; url: string }>;
+  // Volume / volatility context
+  relativeVolume: number | null; // day volume ÷ trailing average
+  volumeNote: string;
+  moveSigma: number | null; // move size in std devs of trailing daily returns
+  // Peer / sector context
+  peers: Array<{ ticker: string; changePercent: number }>;
+  avgPeerChangePercent: number | null;
+  sectorWide: boolean | null;
+  // Catalysts (already ET-aligned and windowed by the route)
+  sameDayNews: Array<{ title: string; source: string }>;
+  priorDayNews: Array<{ title: string; source: string }>;
+  earnings: {
+    period: string;
+    quarter: number;
+    year: number;
+    actual: number | null;
+    estimate: number | null;
+    surprisePercent: number | null;
+    beat: boolean | null;
+  } | null;
+  analystChange: {
+    direction: string;
+    fromPct: number;
+    toPct: number;
+    total: number;
+  } | null;
+  insiderTrades: Array<{ name: string; type: string; shares: number; date: string }>;
   politicianTrades: Array<{ name: string; date: string; type: string; amount: string }>;
 }
 
+export interface MoveExplanation {
+  headline: string;
+  primaryDriver: { factor: string; text: string } | null;
+  contributingFactors: Array<{ factor: string; text: string }>;
+  confidence: ConfidenceLevel;
+  noCatalyst: boolean;
+}
+
+function hasAnyCatalyst(input: MoveExplainInput): boolean {
+  return (
+    input.sameDayNews.length > 0 ||
+    input.priorDayNews.length > 0 ||
+    input.earnings !== null ||
+    input.analystChange !== null ||
+    input.insiderTrades.length > 0 ||
+    input.politicianTrades.length > 0
+  );
+}
+
+// Deterministic fallback when there is no company-specific catalyst — never
+// let the model invent a cause. Still reports what the data DOES show (whether
+// the move tracked its peers / the broader market).
+function fallbackExplanation(input: MoveExplainInput): MoveExplanation {
+  const contributing: Array<{ factor: string; text: string }> = [];
+  if (input.sectorWide === true && input.avgPeerChangePercent !== null) {
+    contributing.push({
+      factor: "Sector / market",
+      text: `Peers moved an average of ${input.avgPeerChangePercent.toFixed(
+        1
+      )}% the same day, so this looks like a sector- or market-wide move rather than company-specific news.`,
+    });
+  }
+  if (input.relativeVolume && input.relativeVolume >= 1.5) {
+    contributing.push({
+      factor: "Volume",
+      text: `Trading volume was ${input.relativeVolume.toFixed(
+        1
+      )}× its recent average, so there was heavier-than-usual activity even without a clear headline.`,
+    });
+  }
+  return {
+    headline:
+      "No clear company-specific catalyst was found near this date.",
+    primaryDriver:
+      input.sectorWide === true
+        ? {
+            factor: "Sector / market",
+            text: "The move lines up with how peers traded, pointing to broad sector or market forces rather than news specific to this company.",
+          }
+        : null,
+    contributingFactors: contributing,
+    confidence: "Low",
+    noCatalyst: true,
+  };
+}
+
+const VALID_CONFIDENCE: ConfidenceLevel[] = ["Low", "Medium", "High"];
+
 export async function generateMoveExplanation(
   input: MoveExplainInput
-): Promise<string> {
+): Promise<MoveExplanation> {
+  // No catalysts at all → deterministic fallback, skip the model entirely so it
+  // cannot hallucinate a cause.
+  if (!hasAnyCatalyst(input)) {
+    return fallbackExplanation(input);
+  }
+
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
   try {
     const result = await model.generateContent(
-      `${MOVE_EXPLAIN_PROMPT}\n\nData:\n${JSON.stringify(input, null, 2)}`
+      `${MOVE_EXPLAIN_PROMPT}\n\nFacts:\n${JSON.stringify(input, null, 2)}`
     );
-    return result.response.text().trim();
+    const text = result.response.text().trim();
+    const clean = text
+      .replace(/^```json\s*/i, "")
+      .replace(/```\s*$/i, "")
+      .trim();
+    const parsed = JSON.parse(clean) as Partial<MoveExplanation>;
+
+    const confidence: ConfidenceLevel = VALID_CONFIDENCE.includes(
+      parsed.confidence as ConfidenceLevel
+    )
+      ? (parsed.confidence as ConfidenceLevel)
+      : "Medium";
+
+    const contributingFactors = Array.isArray(parsed.contributingFactors)
+      ? parsed.contributingFactors
+          .filter((f) => f && typeof f.text === "string" && f.text.trim())
+          .slice(0, 3)
+          .map((f) => ({ factor: String(f.factor || "Other"), text: String(f.text) }))
+      : [];
+
+    const primaryDriver =
+      parsed.primaryDriver && typeof parsed.primaryDriver.text === "string"
+        ? {
+            factor: String(parsed.primaryDriver.factor || "Other"),
+            text: String(parsed.primaryDriver.text),
+          }
+        : null;
+
+    return {
+      headline:
+        typeof parsed.headline === "string" && parsed.headline.trim()
+          ? parsed.headline.trim()
+          : "Here's what the data shows around this move.",
+      primaryDriver,
+      contributingFactors,
+      confidence,
+      noCatalyst: false,
+    };
   } catch {
-    return "Unable to generate an explanation at this time.";
+    // Model/parse failure — degrade to the deterministic summary rather than
+    // showing an error, so the user still gets the factual context.
+    return { ...fallbackExplanation(input), noCatalyst: false };
   }
 }
 

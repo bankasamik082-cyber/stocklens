@@ -53,6 +53,36 @@ interface TdTimeSeriesResponse {
   }>;
 }
 
+// Returns the daily percentage change for `ticker` on a specific `date`
+// (YYYY-MM-DD, market-time). Used to sample peer moves for the same trading day
+// without pulling a full year of history per peer. Returns null if the ticker
+// has no bar on that date (peer wasn't trading / rate-limited / bad symbol).
+export async function getChangePercentOn(
+  ticker: string,
+  date: string
+): Promise<number | null> {
+  // Fetch just enough bars to cover from `date` back to today, plus a buffer so
+  // we always have the prior close needed to compute the change.
+  const target = new Date(`${date}T12:00:00Z`).getTime();
+  const calendarDays = Math.ceil((Date.now() - target) / (24 * 60 * 60 * 1000));
+  const tradingDays = Math.ceil(calendarDays * (5 / 7)) + 8;
+  const size = Math.min(500, Math.max(20, tradingDays));
+
+  const raw = await tdGet<TdTimeSeriesResponse>(
+    `/time_series?symbol=${ticker}&interval=1day&outputsize=${size}`
+  );
+  if (!raw || !Array.isArray(raw.values) || raw.values.length < 2) return null;
+
+  const vals = [...raw.values].reverse(); // oldest-first
+  const idx = vals.findIndex((v) => v.datetime === date);
+  if (idx <= 0) return null; // not found, or no prior bar to diff against
+
+  const prevClose = parseFloat(vals[idx - 1].close);
+  const close = parseFloat(vals[idx].close);
+  if (!prevClose) return null;
+  return +(((close - prevClose) / prevClose) * 100).toFixed(4);
+}
+
 // Returns `days` trading days of daily OHLC, oldest-first.
 // change and changePercent are calculated from consecutive closes.
 export async function getHistoricalPrices(

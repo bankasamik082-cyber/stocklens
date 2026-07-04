@@ -8,6 +8,8 @@
 // Finnhub financials-reported returns XBRL-labeled arrays — labels vary by company, so
 // we do prefix/substring matching rather than fixed field names.
 
+import { etDateFromUnix } from "./dates";
+
 const BASE = "https://financialmodelingprep.com/stable";
 const FH_BASE = "https://finnhub.io/api/v1";
 
@@ -450,29 +452,65 @@ export async function getGeneralNews(limit = 20): Promise<FmpNews[]> {
   }
 }
 
+// News item carrying the market-day (America/New_York) it was published on, so
+// callers can align it to Twelve Data's ET-dated price bars instead of the raw
+// UTC date. `etDate` is what should be compared against a trading-day string.
+export interface DatedNews {
+  title: string;
+  summary: string;
+  source: string;
+  url: string;
+  publishedDate: string; // ISO UTC instant
+  etDate: string; // YYYY-MM-DD in America/New_York
+}
+
+// Fetch company news in a ±windowDays window around `date` and return it
+// ET-aligned and sorted by proximity to that date (closest first). Unlike the
+// old version this does NOT blindly slice the raw feed — a wider `from..to`
+// window meant the newest 10 items could all fall on the far edge, dropping the
+// same-day catalyst. We sort by day-distance first, then recency, then cap.
 export async function getNewsAroundDate(
   ticker: string,
   date: string,
-  windowDays = 5
-): Promise<FmpNews[]> {
+  windowDays = 4
+): Promise<DatedNews[]> {
   const center = new Date(`${date}T12:00:00Z`);
+  // Pad the fetch window by a day on each side: an article published late ET on
+  // day D can carry a UTC date of D+1, so a tight UTC from..to could miss it.
   const from = new Date(center);
-  from.setDate(from.getDate() - windowDays);
+  from.setDate(from.getDate() - windowDays - 1);
   const to = new Date(center);
-  to.setDate(to.getDate() + windowDays);
+  to.setDate(to.getDate() + windowDays + 1);
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
   try {
     const url = `${FH_BASE}/company-news?symbol=${ticker}&from=${fmt(from)}&to=${fmt(to)}&token=${finnhubKey()}`;
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) return [];
     const data = (await res.json()) as FinnhubNewsItem[];
-    return data.slice(0, 10).map((n) => ({
-      title: n.headline,
-      text: n.summary,
-      publishedDate: new Date(n.datetime * 1000).toISOString(),
-      site: n.source,
-      url: n.url,
-    }));
+    if (!Array.isArray(data)) return [];
+
+    const dayMs = 24 * 60 * 60 * 1000;
+    const dist = (etDate: string) =>
+      Math.abs(new Date(`${etDate}T12:00:00Z`).getTime() - center.getTime()) / dayMs;
+
+    return data
+      .filter((n) => n.headline)
+      .map((n) => ({
+        title: n.headline,
+        summary: n.summary,
+        source: n.source,
+        url: n.url,
+        publishedDate: new Date(n.datetime * 1000).toISOString(),
+        etDate: etDateFromUnix(n.datetime),
+      }))
+      .filter((n) => dist(n.etDate) <= windowDays)
+      .sort((a, b) => {
+        const da = dist(a.etDate);
+        const db = dist(b.etDate);
+        if (da !== db) return da - db; // closest to the move first
+        return a.publishedDate < b.publishedDate ? 1 : -1; // then newest
+      })
+      .slice(0, 25);
   } catch {
     return [];
   }
@@ -512,6 +550,48 @@ export async function getAnalystRecommendations(ticker: string) {
     // Second most recent for trend detection in timeline
     prev: sorted[1] ?? null,
   };
+}
+
+// ---- Finnhub: reported earnings history (actual vs estimate) ----
+// Historical quarterly EPS actuals with surprise. `period` is the report date
+// (YYYY-MM-DD). Shared by the timeline and the price-move explainer so both
+// read earnings from one place.
+
+interface FhEarningsRow {
+  symbol: string;
+  period: string;
+  year: number;
+  quarter: number;
+  actual: number | null;
+  estimate: number | null;
+  surprise: number | null;
+  surprisePercent: number | null;
+}
+
+export interface EarningsEvent {
+  period: string; // YYYY-MM-DD reporting date
+  year: number;
+  quarter: number;
+  actual: number | null;
+  estimate: number | null;
+  surprisePercent: number | null;
+  beat: boolean | null;
+}
+
+export async function getEarningsHistory(ticker: string): Promise<EarningsEvent[]> {
+  const data = await fhGet<FhEarningsRow[]>(`/stock/earnings?symbol=${ticker}`);
+  if (!Array.isArray(data)) return [];
+  return data
+    .filter((e) => e.period)
+    .map((e) => ({
+      period: e.period,
+      year: e.year,
+      quarter: e.quarter,
+      actual: e.actual,
+      estimate: e.estimate,
+      surprisePercent: e.surprisePercent,
+      beat: e.surprise !== null ? e.surprise >= 0 : null,
+    }));
 }
 
 // ---- Finnhub: insider transactions ----

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   LineChart,
   Line,
@@ -24,13 +25,36 @@ interface PricePoint {
   changePercent: number;
 }
 
+type ConfidenceLevel = "Low" | "Medium" | "High";
+
+interface MoveExplanation {
+  headline: string;
+  primaryDriver: { factor: string; text: string } | null;
+  contributingFactors: Array<{ factor: string; text: string }>;
+  confidence: ConfidenceLevel;
+  noCatalyst: boolean;
+}
+
+interface MoveFactors {
+  relativeVolume: number | null;
+  volumeNote: string;
+  moveSigma: number | null;
+  avgPeerChangePercent: number | null;
+  sectorWide: boolean | null;
+  peers: Array<{ ticker: string; changePercent: number }>;
+  prevBarDate: string | null;
+  hasEarnings: boolean;
+  newsCount: number;
+}
+
 interface ExplainResult {
   date: string;
   ticker: string;
   close: number;
   priceChange: number;
   priceChangePercent: number;
-  explanation: string;
+  factors: MoveFactors;
+  explanation: MoveExplanation;
   sources: Source[];
 }
 
@@ -54,6 +78,67 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: { paylo
         {d.changePercent.toFixed(2)}%
       </p>
       <p className="mt-1 text-[10px] text-t-dim">Click to explain</p>
+    </div>
+  );
+}
+
+const CONFIDENCE_STYLE: Record<ConfidenceLevel, string> = {
+  High: "bg-t-success/15 text-t-success",
+  Medium: "bg-t-warn/15 text-t-warn",
+  Low: "bg-t-danger/15 text-t-danger",
+};
+
+function ConfidenceBadge({ level }: { level: ConfidenceLevel }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${CONFIDENCE_STYLE[level]}`}
+      title="How confident the explanation is, based on how clear the catalyst is."
+    >
+      {level} confidence
+    </span>
+  );
+}
+
+// Small data chips derived deterministically from the price/peer data — shown
+// even when the model's narrative is terse, so the user always sees the numbers.
+function FactorChips({ factors }: { factors: MoveFactors }) {
+  const chips: string[] = [];
+  if (factors.relativeVolume !== null) {
+    chips.push(`Volume ${factors.relativeVolume}× avg (${factors.volumeNote})`);
+  }
+  if (factors.moveSigma !== null) {
+    chips.push(`${factors.moveSigma}σ move`);
+  }
+  if (factors.sectorWide === true && factors.avgPeerChangePercent !== null) {
+    chips.push(
+      `Sector-wide · peers ${factors.avgPeerChangePercent >= 0 ? "+" : ""}${factors.avgPeerChangePercent}% avg`
+    );
+  } else if (factors.sectorWide === false) {
+    chips.push("Stock-specific move");
+  }
+  if (factors.hasEarnings) chips.push("Earnings in window");
+  if (chips.length === 0) return null;
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {chips.map((c, i) => (
+        <span
+          key={i}
+          className="rounded-full border border-t-border bg-t-text/[0.03] px-2.5 py-1 text-[10px] font-medium text-t-muted"
+        >
+          {c}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function FactorRow({ factor, text }: { factor: string; text: string }) {
+  return (
+    <div className="flex gap-3">
+      <span className="mt-0.5 shrink-0 rounded-md bg-t-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-t-accent">
+        {factor}
+      </span>
+      <p className="text-sm leading-relaxed text-t-muted">{text}</p>
     </div>
   );
 }
@@ -85,6 +170,7 @@ function SourceList({ sources }: { sources: Source[] }) {
 }
 
 export function ExplainClient() {
+  const searchParams = useSearchParams();
   const [ticker, setTicker] = useState("");
   const [prices, setPrices] = useState<PricePoint[]>([]);
   const [currentTicker, setCurrentTicker] = useState("");
@@ -95,47 +181,23 @@ export function ExplainClient() {
   const [loadingExplain, setLoadingExplain] = useState(false);
   const [explainError, setExplainError] = useState("");
 
-  async function handleFetchPrices(e: React.FormEvent) {
-    e.preventDefault();
-    const t = ticker.trim().toUpperCase();
-    if (!t) return;
-    setLoadingPrices(true);
-    setPriceError("");
-    setPrices([]);
-    setSelectedDate(null);
-    setResult(null);
-    setCurrentTicker(t);
-    try {
-      const res = await fetch(`/api/explain-move?ticker=${t}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to fetch prices.");
-      setPrices(data.prices as PricePoint[]);
-    } catch (err) {
-      setPriceError(err instanceof Error ? err.message : "Something went wrong.");
-    } finally {
-      setLoadingPrices(false);
-    }
-  }
+  // Guards against re-explaining the same date and against re-running the
+  // deep-link init on every render.
+  const explainingRef = useRef<string | null>(null);
+  const didInitRef = useRef(false);
 
-  // recharts v3 passes activeLabel (the XAxis dataKey value = date string) in
-  // the onClick chartData param — read it directly instead of the ref approach.
-  async function handleChartClick(chartData: any) {
-    const date = chartData?.activeLabel as string | undefined;
-    if (!date) return;
-    const point = prices.find((p) => p.date === date);
-    if (!point) return;
-    if (point.date === selectedDate && result) return;
-
+  async function explainDate(t: string, date: string) {
+    if (explainingRef.current === date) return;
+    explainingRef.current = date;
     setSelectedDate(date);
     setResult(null);
     setExplainError("");
     setLoadingExplain(true);
-
     try {
       const res = await fetch("/api/explain-move", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticker: currentTicker, date }),
+        body: JSON.stringify({ ticker: t, date }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to generate explanation.");
@@ -146,7 +208,71 @@ export function ExplainClient() {
       );
     } finally {
       setLoadingExplain(false);
+      explainingRef.current = null;
     }
+  }
+
+  // Load price history for `t`; if `autoDate` is given (deep-link from the
+  // timeline), snap to the nearest trading bar on/before it and explain it.
+  async function loadPrices(t: string, autoDate?: string) {
+    if (!t) return;
+    setLoadingPrices(true);
+    setPriceError("");
+    setPrices([]);
+    setSelectedDate(null);
+    setResult(null);
+    setCurrentTicker(t);
+    try {
+      const res = await fetch(`/api/explain-move?ticker=${encodeURIComponent(t)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to fetch prices.");
+      const loaded = data.prices as PricePoint[];
+      setPrices(loaded);
+      if (autoDate && loaded.length) {
+        // Exact bar, else the most recent trading day on/before the target.
+        const exact = loaded.find((p) => p.date === autoDate);
+        const bar =
+          exact ??
+          [...loaded].reverse().find((p) => p.date <= autoDate) ??
+          loaded[loaded.length - 1];
+        explainDate(t, bar.date);
+      }
+    } catch (err) {
+      setPriceError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoadingPrices(false);
+    }
+  }
+
+  // Deep-link support: /explain?ticker=NVDA&date=2025-01-27
+  useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
+    const qTicker = (searchParams.get("ticker") || "").trim().toUpperCase();
+    const qDate = (searchParams.get("date") || "").trim();
+    if (qTicker && /^[A-Z.\-]{1,10}$/.test(qTicker)) {
+      setTicker(qTicker);
+      loadPrices(qTicker, /^\d{4}-\d{2}-\d{2}$/.test(qDate) ? qDate : undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  function handleFetchPrices(e: React.FormEvent) {
+    e.preventDefault();
+    const t = ticker.trim().toUpperCase();
+    if (!t) return;
+    loadPrices(t);
+  }
+
+  // recharts v3 passes activeLabel (the XAxis dataKey value = date string) in
+  // the onClick chartData param — read it directly instead of the ref approach.
+  function handleChartClick(chartData: any) {
+    const date = chartData?.activeLabel as string | undefined;
+    if (!date) return;
+    const point = prices.find((p) => p.date === date);
+    if (!point) return;
+    if (point.date === selectedDate && result) return;
+    explainDate(currentTicker, date);
   }
 
   const tickInterval = prices.length > 0 ? Math.max(1, Math.floor(prices.length / 8)) : 30;
@@ -289,7 +415,7 @@ export function ExplainClient() {
         <div className="card overflow-hidden">
           <div className="border-b border-t-border/50 px-5 py-4">
             {selectedDate && result ? (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-sm font-semibold text-t-text">
                   What happened on{" "}
                   {new Date(`${result.date}T12:00:00`).toLocaleDateString(
@@ -310,12 +436,15 @@ export function ExplainClient() {
                 <span className="font-mono text-xs text-t-muted">
                   ${result.close.toFixed(2)}
                 </span>
+                <span className="ml-auto">
+                  <ConfidenceBadge level={result.explanation.confidence} />
+                </span>
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-t-accent border-t-transparent" />
                 <span className="text-sm text-t-muted">
-                  Fetching news and trades for {selectedDate}…
+                  Analyzing news, peers, volume and events for {selectedDate}…
                 </span>
               </div>
             )}
@@ -332,13 +461,51 @@ export function ExplainClient() {
               <p className="text-sm text-t-danger">{explainError}</p>
             ) : result ? (
               <>
-                <p className="text-sm leading-relaxed text-t-muted">
-                  {result.explanation}
+                {/* Headline */}
+                <p className="text-base font-semibold leading-snug text-t-text">
+                  {result.explanation.headline}
                 </p>
+
+                <FactorChips factors={result.factors} />
+
+                {/* No-catalyst fallback */}
+                {result.explanation.noCatalyst && (
+                  <div className="mt-4 rounded-xl border border-t-warn/30 bg-t-warn/[0.06] px-4 py-3">
+                    <p className="text-xs leading-relaxed text-t-muted">
+                      No clear company-specific catalyst was found near this date.
+                      The move may reflect broader market or sector conditions
+                      rather than news about {result.ticker}.
+                    </p>
+                  </div>
+                )}
+
+                {/* Primary driver */}
+                {result.explanation.primaryDriver && (
+                  <div className="mt-5">
+                    <p className="label mb-2 text-[10px]">Primary driver</p>
+                    <FactorRow
+                      factor={result.explanation.primaryDriver.factor}
+                      text={result.explanation.primaryDriver.text}
+                    />
+                  </div>
+                )}
+
+                {/* Contributing factors */}
+                {result.explanation.contributingFactors.length > 0 && (
+                  <div className="mt-5">
+                    <p className="label mb-2 text-[10px]">Contributing factors</p>
+                    <div className="space-y-3">
+                      {result.explanation.contributingFactors.map((f, i) => (
+                        <FactorRow key={i} factor={f.factor} text={f.text} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <SourceList sources={result.sources} />
                 <p className="mt-4 text-xs text-t-dim">
-                  Research only — not financial advice. Data from FMP and
-                  Finnhub.
+                  Research only — not financial advice. Data from Twelve Data,
+                  Finnhub and FMP.
                 </p>
               </>
             ) : null}

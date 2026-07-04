@@ -202,10 +202,12 @@ function EventPopover({
   event,
   anchor,
   onClose,
+  ticker,
 }: {
   event: TimelineEvent;
   anchor: HTMLElement | null;
   onClose: () => void;
+  ticker: string;
 }) {
   const isEarnings = event.type === "earnings";
   const isBeat = event.beat === true;
@@ -319,6 +321,16 @@ function EventPopover({
             Read article ↗
           </a>
         )}
+        <a
+          href={`/explain?ticker=${encodeURIComponent(ticker)}&date=${event.date}`}
+          className="mt-1 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold"
+          style={{
+            backgroundColor: `rgb(var(--t-accent) / 0.12)`,
+            color: `rgb(var(--t-accent))`,
+          }}
+        >
+          Explain this move →
+        </a>
       </div>
     </motion.div>
     </div>
@@ -336,11 +348,13 @@ function EventMarkersRow({
   events,
   activeId,
   onToggle,
+  ticker,
 }: {
   prices: HistoricalPrice[];
   events: TimelineEvent[];
   activeId: string | null;
   onToggle: (ev: TimelineEvent) => void;
+  ticker: string;
 }) {
   const first = new Date(prices[0].date + "T12:00:00").getTime();
   const last  = new Date(prices[prices.length - 1].date + "T12:00:00").getTime();
@@ -385,6 +399,7 @@ function EventMarkersRow({
             activeId={activeId}
             activeEvent={activeEvent}
             onToggle={onToggle}
+            ticker={ticker}
           />
         ))}
       </div>
@@ -400,12 +415,14 @@ function MarkerGroup({
   activeId,
   activeEvent,
   onToggle,
+  ticker,
 }: {
   x: number;
   group: TimelineEvent[];
   activeId: string | null;
   activeEvent: TimelineEvent | null;
   onToggle: (ev: TimelineEvent) => void;
+  ticker: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isActive = group.some((e) => e.id === activeId);
@@ -422,6 +439,7 @@ function MarkerGroup({
             event={activeEvent}
             anchor={containerRef.current}
             onClose={() => onToggle(activeEvent)}
+            ticker={ticker}
           />
         )}
       </AnimatePresence>
@@ -498,7 +516,7 @@ function EventBadge({ type }: { type: EventType }) {
   );
 }
 
-function EventListItem({ event, onFocus }: { event: TimelineEvent; onFocus: (ev: TimelineEvent) => void }) {
+function EventListItem({ event, onFocus, ticker }: { event: TimelineEvent; onFocus: (ev: TimelineEvent) => void; ticker: string }) {
   const isEarnings = event.type === "earnings";
   const isBeat = event.beat === true;
   const isMiss = event.beat === false;
@@ -563,15 +581,25 @@ function EventListItem({ event, onFocus }: { event: TimelineEvent; onFocus: (ev:
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => onFocus(event)}
-          className="shrink-0 rounded-lg border px-2 py-1 text-[10px] transition self-start mt-0.5"
-          style={{ borderColor: `rgb(var(--t-text) / 0.08)`, color: `rgb(var(--t-dim))`, backgroundColor: `rgb(var(--t-text) / 0.03)` }}
-          title="Show on chart"
-        >
-          ↑ Chart
-        </button>
+        <div className="flex shrink-0 flex-col items-end gap-1.5 self-start mt-0.5">
+          <button
+            type="button"
+            onClick={() => onFocus(event)}
+            className="rounded-lg border px-2 py-1 text-[10px] transition"
+            style={{ borderColor: `rgb(var(--t-text) / 0.08)`, color: `rgb(var(--t-dim))`, backgroundColor: `rgb(var(--t-text) / 0.03)` }}
+            title="Show on chart"
+          >
+            ↑ Chart
+          </button>
+          <a
+            href={`/explain?ticker=${encodeURIComponent(ticker)}&date=${event.date}`}
+            className="rounded-lg px-2 py-1 text-[10px] font-semibold"
+            style={{ backgroundColor: `rgb(var(--t-accent) / 0.12)`, color: `rgb(var(--t-accent))` }}
+            title="Explain the price move on this date"
+          >
+            Explain →
+          </a>
+        </div>
       </div>
     </motion.div>
   );
@@ -791,6 +819,7 @@ export function TimelineClient() {
               events={data.events}
               activeId={activeId}
               onToggle={toggleActive}
+              ticker={currentTicker}
             />
           </div>
         </div>
@@ -819,7 +848,7 @@ export function TimelineClient() {
           </div>
           <div className="px-4 py-4">
             {eventsNewestFirst.map((ev) => (
-              <EventListItem key={ev.id} event={ev} onFocus={focusOnChart} />
+              <EventListItem key={ev.id} event={ev} onFocus={focusOnChart} ticker={currentTicker} />
             ))}
           </div>
           <div
